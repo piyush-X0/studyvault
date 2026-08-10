@@ -9,13 +9,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         const { id } = await params;
 
         const documents = await prisma.document.findUnique({
-            where: { id }, select: { id: true, uploadStatus: true, r2Key: true }
+            where: { id }, select: { id: true, uploadedStatus: true, r2Key: true }
         });
 
         if (!documents) {
             return NextResponse.json({ error: "Document not Found" }, { status: 400 });
         }
-        if (documents.uploadStatus == "UPLOADED") {
+        if (documents.uploadedStatus == "UPLOADED") {
             return NextResponse.json({ status: "UPLOADED" });
         }
 
@@ -26,15 +26,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         }
         catch (er) {
             await prisma.document.update({
-                where: { id }, data: { uploadStatus: "FAILED" }
+                where: { id }, data: { uploadedStatus: "FAILED" }
             });
             return NextResponse.json({ error: "file is not found in storage", status: "FAILED" }, { status: 422 });
         }
         const updated = await prisma.document.update({
             where: { id },
-            data: { uploadStatus: "UPLOADED" }
+            data: { uploadedStatus: "UPLOADED" }
         });
-        return NextResponse.json({ status: updated.uploadStatus });
+        return NextResponse.json({ status: updated.uploadedStatus });
     }
     catch (er) {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
