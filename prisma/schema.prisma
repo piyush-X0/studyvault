@@ -7,7 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
-enum UploadStatus {
+enum UploadedStatus {
   PENDING
   UPLOADED
   FAILED
@@ -16,7 +16,7 @@ enum UploadStatus {
 enum ExtractedStatus {
   PENDING
   PROCESSING
-  UPLOADED
+  EXTRACTED
   FAILED
 }
 
@@ -26,7 +26,7 @@ model Document {
   r2Key           String          @unique
   size            Int
   mimetype        String
-  uploadStatus    UploadStatus    @default(PENDING)
+  uploadedStatus  UploadedStatus  @default(PENDING)
   extractedStatus ExtractedStatus @default(PENDING)
   extractedText   String?         @db.Text
   extractionError String?
