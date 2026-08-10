@@ -13,12 +13,24 @@ enum UploadStatus {
   FAILED
 }
 
+enum ExtractedStatus {
+  PENDING
+  PROCESSING
+  UPLOADED
+  FAILED
+}
+
 model Document {
-  id           String       @id @default(cuid())
-  filename     String
-  r2Key        String       @unique
-  size         Int
-  mimetype     String
-  uploadStatus UploadStatus @default(PENDING)
-  createdAt    DateTime     @default(now())
+  id              String          @id @default(cuid())
+  filename        String
+  r2Key           String          @unique
+  size            Int
+  mimetype        String
+  uploadStatus    UploadStatus    @default(PENDING)
+  extractedStatus ExtractedStatus @default(PENDING)
+  extractedText   String?         @db.Text
+  extractionError String?
+  createdAt       DateTime        @default(now())
+
+  @@index([extractedStatus])
 }
