@@ -31,6 +31,20 @@ model Document {
   extractedText   String?         @db.Text
   extractionError String?
   createdAt       DateTime        @default(now())
+  chunks          docChunks[]
 
   @@index([extractedStatus])
+}
+
+model docChunks {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String   @db.Text
+  chunkIndex Int
+  charCount  Int
+  createdAt  DateTime @default(now())
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
 }
