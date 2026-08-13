@@ -20,6 +20,13 @@ enum ExtractedStatus {
   FAILED
 }
 
+enum EmbeddingStatus {
+  PENDING
+  PROCESSING
+  Embedded
+  FAILED
+}
+
 model Document {
   id              String          @id @default(cuid())
   filename        String
@@ -28,22 +35,25 @@ model Document {
   mimetype        String
   uploadedStatus  UploadedStatus  @default(PENDING)
   extractedStatus ExtractedStatus @default(PENDING)
+  embeddingStatus EmbeddingStatus @default(PENDING)
+  embeddingError  String?
   extractedText   String?         @db.Text
   extractionError String?
   createdAt       DateTime        @default(now())
   chunks          docChunks[]
 
-  @@index([extractedStatus])
+  @@index([extractedStatus, embeddingStatus])
 }
 
 model docChunks {
-  id         String   @id @default(cuid())
+  id         String                       @id @default(cuid())
   documentId String
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  content    String   @db.Text
+  document   Document                     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String                       @db.Text
   chunkIndex Int
   charCount  Int
-  createdAt  DateTime @default(now())
+  embedding  Unsupported("vector(1536)")?
+  createdAt  DateTime                     @default(now())
 
   @@unique([documentId, chunkIndex])
   @@index([documentId])
