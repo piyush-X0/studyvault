@@ -17,7 +17,7 @@ export function chunkText(
     const chunks: Chunk[] = [];
     const separators = ["\n\n", "\n", ". ", " "];
 
-    let currentPosition = -1;
+    let currentPosition = 0;
     while (currentPosition < text.length) {
         let endPosition = currentPosition + chunkSize;
 
@@ -40,11 +40,13 @@ export function chunkText(
         }
 
         const content = text.slice(currentPosition, endPosition);
-        chunks.push({
-            content: content.trim(),
-            chunkIndex: content.length,
-            charCount: content.trim().length
-        });
+        if (content.trim().length > 0) {
+            chunks.push({
+                content: content.trim(),
+                chunkIndex: chunks.length,
+                charCount: content.trim().length
+            });
+        }
 
         const nextStart = endPosition - overlap;
         if (nextStart <= currentPosition) {
