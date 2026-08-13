@@ -23,29 +23,29 @@ enum ExtractedStatus {
 enum EmbeddingStatus {
   PENDING
   PROCESSING
-  Embedded
+  EMBEDDED
   FAILED
 }
 
 model Document {
-  id              String          @id @default(cuid())
+  id              String           @id @default(cuid())
   filename        String
-  r2Key           String          @unique
+  r2Key           String           @unique
   size            Int
   mimetype        String
-  uploadedStatus  UploadedStatus  @default(PENDING)
-  extractedStatus ExtractedStatus @default(PENDING)
-  embeddingStatus EmbeddingStatus @default(PENDING)
+  uploadedStatus  UploadedStatus   @default(PENDING)
+  extractedStatus ExtractedStatus  @default(PENDING)
+  embeddingStatus EmbeddingStatus  @default(PENDING)
   embeddingError  String?
-  extractedText   String?         @db.Text
+  extractedText   String?          @db.Text
   extractionError String?
-  createdAt       DateTime        @default(now())
-  chunks          docChunks[]
+  createdAt       DateTime         @default(now())
+  chunks          DocumentChunks[]
 
   @@index([extractedStatus, embeddingStatus])
 }
 
-model docChunks {
+model DocumentChunks {
   id         String                       @id @default(cuid())
   documentId String
   document   Document                     @relation(fields: [documentId], references: [id], onDelete: Cascade)
