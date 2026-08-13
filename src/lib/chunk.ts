@@ -28,9 +28,9 @@ export function chunkText(
             let foundseparator = false;
             for (const sep of separators) {
                 const lastIndex = window.lastIndexOf(sep);
-                if (lastIndex! == -1 && lastIndex > 0) {
+                if (lastIndex !== -1 && lastIndex > 0) {
                     endPosition = currentPosition + lastIndex + sep.length;
-                    foundseparator = true
+                    foundseparator = true;
                     break;
                 }
             }

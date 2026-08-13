@@ -19,7 +19,7 @@ export async function POST(req: NextResponse, { params }: { params: Promise<{ id
             return NextResponse.json({ error: "Document has not been Extracted yet" }, { status: 409 });
         }
 
-        const existingChunkCount = await prisma.docChunks.count({
+        const existingChunkCount = await prisma.documentChunks.count({
             where: { documentId: id }
         });
         if (existingChunkCount > 0) {
@@ -27,7 +27,7 @@ export async function POST(req: NextResponse, { params }: { params: Promise<{ id
         }
 
         const chunks = chunkText(document.extractedText);
-        await prisma.docChunks.createMany({
+        await prisma.documentChunks.createMany({
             data: chunks.map((chunk) => ({
                 documentId: id,
                 content: chunk.content,
@@ -38,6 +38,7 @@ export async function POST(req: NextResponse, { params }: { params: Promise<{ id
         return NextResponse.json({ status: "CHUNKED", chunkCount: chunks.length });
 
     } catch (error) {
+        console.log("chunk error ------", error)
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
