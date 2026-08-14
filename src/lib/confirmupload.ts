@@ -24,13 +24,13 @@ export async function confirmUpload(documentId: string) {
     } catch (error) {
         await prisma.document.update({
             where: { id: documentId },
-            data: { uploadStatus: "FAILED" }
+            data: { uploadedStatus: "FAILED" }
         });
         return { ok: false as const, reason: "FILE NOT IN STORAGE" as const };
     }
     const updated = await prisma.document.update({
         where: { id: documentId },
-        data: { uploadStatus: "UPLOADED" }
+        data: { uploadedStatus: "UPLOADED" }
     });
-    return { ok: true as const, status: updated.uploadStatus };
+    return { ok: true as const, status: updated.uploadedStatus };
 }

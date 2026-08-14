@@ -12,7 +12,7 @@ export async function generateAnswer(question: string, contextChunks: string[]):
 
     const response = await genAI.models.generateContent({
         model: CHAT_MODEL,
-        contents: context,
+        contents: `Document excerpts:\n\n${context}\n\n Question : ${question}`,
         config: {
             systemInstruction: "You are a study assistent. Answer the user's question using only the provided documents excerpts. If the excerpts don't contain the enough information  to answer , say so clearly instead of guessing."
         }
