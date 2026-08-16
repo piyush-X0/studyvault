@@ -29,6 +29,7 @@ enum EmbeddingStatus {
 
 model Document {
   id              String           @id @default(cuid())
+  userId          String
   filename        String
   r2Key           String           @unique
   size            Int
@@ -42,6 +43,7 @@ model Document {
   createdAt       DateTime         @default(now())
   chunks          DocumentChunks[]
 
+  @@index([userId])
   @@index([extractedStatus, embeddingStatus])
 }
 
