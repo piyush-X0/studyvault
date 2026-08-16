@@ -6,12 +6,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_TYPES = new Set([
+    "application/pdf",
+    "application/text",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/markdown"
+]);
 export async function POST(req: NextRequest) {
     try {
         const { filename, contentType, size } = await req.json();
 
         if (!filename || !contentType || !size) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 })
+        }
+        if (!ALLOWED_TYPES.has(contentType)) {
+            return NextResponse.json({ error: "UnSupported file tye" }, { status: 400 });
         }
         if (size > MAX_FILE_SIZE) {
             return NextResponse.json({ error: "File too large. Maximum size is 10MB" }, { status: 400 });
