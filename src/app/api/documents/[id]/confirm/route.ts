@@ -1,4 +1,5 @@
 import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
+import { runPipeline } from "@/lib/pipeline";
 import { prisma } from "@/lib/prisma";
 import { BUCKET_NAME, r2Client } from "@/lib/r2";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
@@ -24,17 +25,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
                 new HeadObjectCommand({ Bucket: BUCKET_NAME, Key: documents.r2Key })
             )
         }
-        catch (er) {
+        catch {
             await prisma.document.update({
                 where: { id }, data: { uploadedStatus: "FAILED" }
             });
             return NextResponse.json({ error: "file is not found in storage", status: "FAILED" }, { status: 422 });
         }
-        const updated = await prisma.document.update({
+        await prisma.document.update({
             where: { id },
             data: { uploadedStatus: "UPLOADED" }
         });
-        return NextResponse.json({ status: updated.uploadedStatus });
+
+        runPipeline(id).catch((error) => {
+            console.log(`pipeline failed for document : ${id} ;`, error)
+        });
+        return NextResponse.json({
+            status: "UPLOADED", message: "Pipeline Started"
+        });
     }
     catch (er) {
         console.log("errro : ", er)
