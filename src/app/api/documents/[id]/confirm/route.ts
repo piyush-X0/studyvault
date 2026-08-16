@@ -1,4 +1,3 @@
-import { UploadedStatus } from "@/generated/prisma/enums";
 import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
 import { prisma } from "@/lib/prisma";
 import { BUCKET_NAME, r2Client } from "@/lib/r2";
