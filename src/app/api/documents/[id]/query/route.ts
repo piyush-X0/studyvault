@@ -1,5 +1,6 @@
 import { generateAnswer } from "@/lib/answers";
 import { generateEmbeddings } from "@/lib/embedding";
+import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
 import { prisma } from "@/lib/prisma";
 import { findRelevantChunks } from "@/lib/search";
 import { NextRequest, NextResponse } from "next/server";
@@ -15,9 +16,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             return NextResponse.json({ error: "Question is required" }, { status: 400 });
         }
 
-        const document = await prisma.document.findUnique({
-            where: { id },
-            select: { embeddingStatus: true }
+        const document = await getDocumentForUser(id, DEV_USER_ID, {
+            embeddingStatus: true
         });
 
         if (!document) {

@@ -1,4 +1,5 @@
 import { extractText } from "@/lib/extract";
+import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
 import { getFileBuffer } from "@/lib/getfilebuffer";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
@@ -7,9 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
-        const document = await prisma.document.findUnique({
-            where: { id },
-            select: { id: true, mimetype: true, r2Key: true, uploadedStatus: true, extractedStatus: true }
+        const document = await getDocumentForUser(id, DEV_USER_ID, {
+            id: true, mimetype: true, r2Key: true,
+            uploadedStatus: true, extractedStatus: true
         });
 
         if (!document) {

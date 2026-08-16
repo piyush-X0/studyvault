@@ -13,6 +13,7 @@ const ALLOWED_TYPES = new Set([
     "application/markdown"
 ]);
 export async function POST(req: NextRequest) {
+    const USER_ID = "dev-user-id";//later will replace with session.id after next-auth
     try {
         const { filename, contentType, size } = await req.json();
 
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
         if (size > MAX_FILE_SIZE) {
             return NextResponse.json({ error: "File too large. Maximum size is 10MB" }, { status: 400 });
         }
-        const r2Key = `${randomUUID()}-${filename}`
+        const r2Key = `${USER_ID}/${randomUUID()}-${filename}`
         const command = new PutObjectCommand({
             Bucket: BUCKET_NAME,
             Key: r2Key,
@@ -35,7 +36,13 @@ export async function POST(req: NextRequest) {
         const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 300 }); //5min
 
         const document = await prisma.document.create({
-            data: { filename, r2Key, size, mimetype: contentType }
+            data: {
+                userId: USER_ID,
+                filename,
+                r2Key,
+                size,
+                mimetype: contentType
+            }
         });
         return NextResponse.json({ presignedUrl, documentId: document.id, r2Key }, { status: 201 });
     }

@@ -1,4 +1,5 @@
 import { chunkText } from "@/lib/chunk";
+import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -6,9 +7,8 @@ import { NextResponse } from "next/server";
 export async function POST(req: NextResponse, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
-        const document = await prisma.document.findUnique({
-            where: { id },
-            select: { id: true, extractedStatus: true, extractedText: true }
+        const document = await getDocumentForUser(id, DEV_USER_ID, {
+            id: true, extractedStatus: true, extractedText: true
         });
 
         if (!document) {

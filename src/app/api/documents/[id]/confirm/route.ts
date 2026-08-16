@@ -1,3 +1,5 @@
+import { UploadedStatus } from "@/generated/prisma/enums";
+import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
 import { prisma } from "@/lib/prisma";
 import { BUCKET_NAME, r2Client } from "@/lib/r2";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
@@ -8,10 +10,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     try {
         const { id } = await params;
 
-        const documents = await prisma.document.findUnique({
-            where: { id }, select: { id: true, uploadedStatus: true, r2Key: true }
+        const documents = await getDocumentForUser(id, DEV_USER_ID, {
+            id: true, uploadedStatus: true, r2Key: true
         });
-
         if (!documents) {
             return NextResponse.json({ error: "Document not Found" }, { status: 400 });
         }
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ status: updated.uploadedStatus });
     }
     catch (er) {
+        console.log("errro : ", er)
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

@@ -1,4 +1,5 @@
 import { generateEmbeddings } from "@/lib/embedding";
+import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -8,9 +9,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     try {
         ({ id } = await params);
 
-        const document = await prisma.document.findUnique({
-            where: { id },
-            select: { id: true, embeddingStatus: true, }
+        const document = await getDocumentForUser(id, DEV_USER_ID, {
+            id: true, embeddingStatus: true
         });
 
         if (!document) {

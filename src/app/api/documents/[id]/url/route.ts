@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
+import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
 import { BUCKET_NAME, r2Client } from "@/lib/r2";
-import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -13,8 +13,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         if (!id) {
             return NextResponse.json({ error: "Document Id is required" }, { status: 400 });
         }
-        const documents = await prisma.document.findUnique({
-            where: { id }, select: { id: true, r2Key: true, filename: true, mimetype: true }
+        const documents = await getDocumentForUser(id, DEV_USER_ID, {
+            id: true, r2Key: true, filename: true, mimetype: true
         });
 
         if (!documents) {
