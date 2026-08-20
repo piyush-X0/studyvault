@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowUp } from "lucide-react";
+import { autoResize } from "@/lib/utils";
 import { useState } from "react";
 
 interface Document {
@@ -25,15 +26,6 @@ export default function Home() {
   >("idle");
   const [uploadingFileName, setUploadingFileName] = useState("");
 
-  function autoResize(el: HTMLTextAreaElement) {
-    el.style.height = "auto";
-    el.style.height = el.scrollHeight + "px";
-    if (el.scrollHeight > 240) {
-      el.style.overflowY = "auto";
-    } else {
-      el.style.overflowY = "hidden";
-    }
-  }
   function handleQuery() {}
   return (
     <div className="h-screen bg-[#202124] text-[#E8E8E8] flex flex-col">
