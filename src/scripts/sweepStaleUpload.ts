@@ -8,7 +8,7 @@ export async function sweepStaleUpload() {
     const cutoff = new Date(Date.now() - STALE_AFTER_MINUTES * 60 * 1000);
 
     const staledocuments = await prisma.document.findMany({
-        where: { uploadStatus: "PENDING", createdAt: { lt: cutoff } }, select: { id: true }
+        where: { uploadedStatus: "PENDING", createdAt: { lt: cutoff } }, select: { id: true }
     });
 
     let uploaded = 0;
