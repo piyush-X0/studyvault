@@ -8,9 +8,9 @@ import { randomUUID } from "crypto";
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
     "application/pdf",
-    "application/text",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/markdown"
+    "text/plain",
+    "text/markdown",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 ]);
 export async function POST(req: NextRequest) {
     const USER_ID = "dev-user-id";//later will replace with session.id after next-auth
