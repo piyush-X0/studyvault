@@ -38,7 +38,7 @@ export async function POST(req: NextResponse, { params }: { params: Promise<{ id
         return NextResponse.json({ status: "CHUNKED", chunkCount: chunks.length });
 
     } catch (error) {
-        console.log("chunk error ------", error)
+        console.error("chunking failed : ", error)
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

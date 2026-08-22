@@ -1,7 +1,6 @@
 import { streamAnswer } from "@/lib/answers";
 import { generateEmbeddings } from "@/lib/embedding";
 import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
-import { prisma } from "@/lib/prisma";
 import { findRelevantChunks } from "@/lib/search";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         });
 
     } catch (error) {
-        console.log("query ERROR : ", error);
+        console.error("query failed : ", error)
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

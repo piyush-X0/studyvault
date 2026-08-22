@@ -45,12 +45,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
                 where: { id },
                 data: { extractedStatus: "FAILED", extractionError: message }
             });
-            console.log("extraction failed : ", { documentID: id, error: message });
+            console.error("extraction failed : ", { error: message });
             return NextResponse.json({ error: "EXTRACTION FAILED", detail: message }, { status: 422 });
         }
     }
     catch (er) {
-        console.log("POST api/documents/[id]/extract : ", er);
+        console.error("extraction message : ", er);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

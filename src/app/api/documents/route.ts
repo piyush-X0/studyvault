@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ documents });
     }
     catch (error) {
-        console.log("GET [api/documents] : ", error);
+        console.error("Document fetching failed : ", error);
         return NextResponse.json({ error: "Failed to fetch documents" }, { status: 500 });
     }
 }

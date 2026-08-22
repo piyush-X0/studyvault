@@ -37,14 +37,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         });
 
         runPipeline(id).catch((error) => {
-            console.log(`pipeline failed for document : ${id} ;`, error)
         });
         return NextResponse.json({
             status: "UPLOADED", message: "Pipeline Started"
         });
     }
     catch (er) {
-        console.log("errro : ", er)
+        console.error("confirmation failed : ", er)
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

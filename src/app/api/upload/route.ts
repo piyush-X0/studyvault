@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ presignedUrl, documentId: document.id, r2Key }, { status: 201 });
     }
     catch (error) {
-        console.log("[POST  /api/upload ]", error);
+        console.error("UPloading failed : ", error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

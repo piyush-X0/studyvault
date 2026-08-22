@@ -34,7 +34,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
         chunks.forEach((c, i) => {
             if (!c.content || c.content.trim().length === 0) {
-                console.log(`Empty chunk found at index ${i}, id=${c.id}`);
             }
         });
         await prisma.document.update({
@@ -57,7 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         });
         return NextResponse.json({ status: "EMBEDDED ", chunkCount: chunks.length });
     } catch (error) {
-        console.log(" POST embedding-route : ", error);
+        console.error(" embedding message : ", error);
 
         if (id) {
             await prisma.document.update({

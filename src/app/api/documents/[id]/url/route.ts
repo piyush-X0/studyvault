@@ -37,6 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         return NextResponse.json({ url: presignedURL });
 
     } catch (er) {
+        console.error("Url failed : ", er)
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
