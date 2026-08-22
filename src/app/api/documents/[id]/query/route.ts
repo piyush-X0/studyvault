@@ -1,4 +1,4 @@
-import { generateAnswer } from "@/lib/answers";
+import { streamAnswer } from "@/lib/answers";
 import { generateEmbeddings } from "@/lib/embedding";
 import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
 import { prisma } from "@/lib/prisma";
@@ -30,12 +30,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         const [questionvector] = await generateEmbeddings([question]);
         const relevantChunks = await findRelevantChunks(id, questionvector, 5);
 
-        const answer = await generateAnswer(
-            question, relevantChunks.map((chunk) => chunk.content)
-        )
-
-        return NextResponse.json({
-            answer, sources: relevantChunks.map((chunk) => ({ chunIndex: chunk.chunkIndex }))
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+            async start(controller) {
+                await streamAnswer(
+                    question,
+                    relevantChunks.map((c) => c.content),
+                    (text) => {
+                        controller.enqueue(encoder.encode(text));
+                    }
+                );
+                controller.close();
+            }
+        });
+        return new Response(stream, {
+            headers: {
+                "Content-Type": "text/plain; charset=utf-8",
+                "Transfer-Encoding": "chunked",
+            }
         });
 
     } catch (error) {
