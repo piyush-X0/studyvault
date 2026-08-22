@@ -18,8 +18,12 @@ interface Document {
 export default function Home() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<
+    { role: "user" | "assistant"; text: string, fileName?: string }[]
+  >([]);
+  const [uploadedDocId, setUploadedDocId] = useState<string | null>(null)
+  const [pipelineReady, setPipelineReady] = useState(false)
   const [asking, setAsking] = useState(false);
   const [uploadStage, setUploadStage] = useState<
     "idle" | "uploading" | "processing" | "ready" | "failed"
@@ -48,9 +52,9 @@ export default function Home() {
     setUploadStage("uploading");
     try {
       //getting presigned url
-      const res = await fetch("api/upload", {
+      const res = await fetch("/api/upload", {
         method: "POST",
-        headers: { "Content-Type": "Application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           filename: file.name,
           contentType: file.type,
@@ -68,6 +72,7 @@ export default function Home() {
       await fetch(`/api/documents/${documentId}/confirm`, {
         method: "POST",
       });
+      setUploadedDocId(documentId);
       setUploadStage("processing");
       fetchDocuments();
       startPolling(documentId);
@@ -81,7 +86,7 @@ export default function Home() {
 
     pollingRef.current = setInterval(async () => {
       try {
-        const res = await fetch("api/documents");
+        const res = await fetch("/api/documents");
         const data = await res.json();
         const docs: Document[] = data.documents ?? [];
         setDocuments(docs);
@@ -93,6 +98,7 @@ export default function Home() {
           pollingRef.current = null;
           setUploadStage("ready");
           setActiveDocId(docId);
+          setPipelineReady(true);
         }
 
         if (
@@ -103,7 +109,11 @@ export default function Home() {
           setUploadStage("failed");
         }
       } catch {
-        console.error("polling Error");
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current)
+          pollingRef.current = null
+        }
+        setUploadStage("failed")
       }
     }, 3000);
     setTimeout(() => {
@@ -113,25 +123,62 @@ export default function Home() {
       }
     }, 120_000);
   }
-  async function handleQuery() {
-    if (!question.trim() || !activeDocId || asking) return;
+
+  async function handleQuery(fileName?: string) {
+    if (!input.trim() || !activeDocId || asking) return;
+    const userQuestion = input.trim();
+
+    setMessages((prev) => [...prev, { role: "user", text: userQuestion, fileName }]);
+    setInput("");
     setAsking(true);
-    setAnswer("");
+
+    setMessages((prev) => [...prev, { role: "assistant", text: "" }]);
+
     try {
       const res = await fetch(`/api/documents/${activeDocId}/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question: userQuestion }),
       });
-      const data = await res.json();
-      setAnswer(data.answer ?? "No answer returned.");
-      setQuestion("");
+
+      if (!res.body) throw new Error("No stream");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+
+        setMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last.role === "assistant") {
+            updated[updated.length - 1] = {
+              ...last,
+              text: last.text + chunk
+            };
+          }
+          return updated;
+        });
+      }
+
     } catch {
-      setAnswer("Something went wrong. Try again.");
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: "assistant", text: "Something went wrong." };
+        return updated;
+      });
     } finally {
       setAsking(false);
     }
   }
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
   return (
     <div className="h-screen bg-[#202124] text-[#E8E8E8] flex flex-col">
       {/* Header */}
@@ -159,50 +206,119 @@ export default function Home() {
             type="file"
             accept=".pdf,.docx,.txt"
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0];
-              if (file) setPendingFile(file);
+              if (!file) return;
+              setPendingFile(file);
               e.target.value = "";
+              await handleUpload(file);
             }}
           />
         </aside>
 
         <main className=" flex-1 flex flex-col justify-between h-full min-w-0">
           {/*Chat area*/}
-          <div className="flex-1"></div>
+          <div className="flex-1 overflow-y-auto px-9 py-4 flex flex-col gap-6">
+            {messages.length === 0 && (
+              <p className="text-zinc-600 text-sm font-mono">Upload a document to start</p>
+            )}
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end" : "items-start"}`}>
+
+                {msg.fileName && (
+                  <div className="bg-zinc-800 border border-zinc-700 rounded-2xl px-3 py-2 mb-1 w-fit">
+                    <span className="text-xs text-white font-mono block truncate max-w-50">
+                      {msg.fileName}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono uppercase">
+                      {msg.fileName.split(".").pop()}
+                    </span>
+                  </div>
+                )}
+
+                <p className={`text-sm leading-relaxed max-w-[80%] px-4 py-2 rounded-2xl whitespace-pre-wrap ${msg.role === "user" ? "bg-zinc-700 text-white" : "text-zinc-300"
+                  }`}>
+                  {msg.text}
+                </p>
+              </div>
+            ))}
+            {asking && (
+              <p className="text-zinc-500 text-sm font-mono animate-pulse">thinking...</p>
+            )}
+            <div ref={chatBottomRef} />
+          </div>
 
           {/*Right query Card*/}
           <footer className=" mx-9 py-3   ">
             <div className="bg-[#1b1c1e] border-2 border-zinc-700 rounded-4xl p-4 px-5 -mb-3">
               {pendingFile && (
-                <div className="flex items-center gap-2 mb-3 bg-zinc-800 border border-zinc-700 rounded-2xl px-3  w-fit max-w-55 py-3 pb-12">
-                  <button
-                    onClick={() => setPendingFile(null)}
-                    className="text-zinc-300 hover:text-white text-xs leading-none shrink-0 -ml-4 -mt-11 bg-zinc-700 rounded-full p-1"
-                  >
-                    ✕
-                  </button>
-                  <div className="flex flex-col min-w-0 -ml-2 ">
-                    <span className="text-xs text-white font-mono truncate mb-1">
+                <div className="flex items-center gap-2 mb-3 bg-zinc-800 border border-zinc-700 rounded-2xl px-3 py-2 w-fit max-w-55">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-xs text-white font-mono truncate">
                       {pendingFile.name}
                     </span>
                     <span className="text-[10px] text-zinc-500 font-mono uppercase">
                       {pendingFile.name.split(".").pop()}
                     </span>
                   </div>
+
+                  {/* uploading */}
+                  {uploadStage === "uploading" || uploadStage === "processing" ? (
+                    <div className="w-3 h-3 rounded-full border-2 border-zinc-500 border-t-white animate-spin shrink-0" />
+                  ) : null}
+
+                  {/* failed */}
+                  {uploadStage === "failed" && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-red-400 text-xs">⚠</span>
+                      <button
+                        onClick={() => {
+                          setPendingFile(null)
+                          setUploadStage("idle")
+                          setUploadedDocId(null)
+                        }}
+                        className="text-zinc-500 hover:text-white text-xs transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ready — real delete */}
+                  {uploadStage === "ready" && pipelineReady && (
+                    <button
+                      onClick={async () => {
+                        if (uploadedDocId) {
+                          await fetch(`/api/documents/${uploadedDocId}`, { method: "DELETE" })
+                          setUploadedDocId(null)
+                          setActiveDocId(null)
+                          fetchDocuments()
+                        }
+                        setPendingFile(null)
+                        setPipelineReady(false)
+                        setUploadStage("idle")
+                      }}
+                      className="text-zinc-500 hover:text-white text-xs shrink-0 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               )}
               <textarea
                 rows={1}
-                value={question}
+                value={input}
                 onChange={(e) => {
-                  setQuestion(e.target.value);
+                  setInput(e.target.value);
                   autoResize(e.target);
                 }}
-                onKeyDown={(e) => {
+                onKeyDown={async (e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleQuery();
+                    e.preventDefault()
+                    const fileName = pendingFile?.name
+                    setPendingFile(null)
+                    setPipelineReady(false)
+                    await handleQuery(fileName)
                   }
                 }}
                 placeholder="Write your Query..."
@@ -228,12 +344,10 @@ export default function Home() {
                     "bg-zinc-400 rounded-full text-zinc-900 w-10 h-10  hover:bg-zinc-200 transition-colors"
                   }
                   onClick={async () => {
-                    if (pendingFile) {
-                      await handleUpload(pendingFile);
-                      setPendingFile(null);
-                    } else {
-                      handleQuery();
-                    }
+                    const fileName = pendingFile?.name
+                    setPendingFile(null)
+                    setPipelineReady(false)
+                    await handleQuery(fileName)
                   }}
                 >
                   <ArrowUp />
