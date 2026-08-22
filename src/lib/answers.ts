@@ -1,21 +1,22 @@
 import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
-const CHAT_MODEL = "gemini-3.6-flash";
+export async function streamAnswer(
+    question: string,
+    chunks: string[],
+    onChunk: (text: string) => void
+): Promise<void> {
+    const context = chunks.join("\n\n");
+    const prompt = "You are a study assistent. Answer the user's question using only the provided documents excerpts. If the excerpts don't contain the enough information  to answer , say so clearly instead of guessing."
 
-export async function generateAnswer(question: string, contextChunks: string[]): Promise<string> {
-
-    const context = contextChunks
-        .map((chunk, i) => `[Excerpt ${i + 1} \n ${chunk}]`)
-        .join("\n\n");
-
-    const response = await genAI.models.generateContent({
-        model: CHAT_MODEL,
-        contents: `Document excerpts:\n\n${context}\n\n Question : ${question}`,
-        config: {
-            systemInstruction: "You are a study assistent. Answer the user's question using only the provided documents excerpts. If the excerpts don't contain the enough information  to answer , say so clearly instead of guessing."
-        }
+    const response = await genai.models.generateContentStream({
+        model: "gemini-3.6-flash",
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
     });
-    return response.text ?? "";
+
+    for await (const chunk of response) {
+        const text = chunk.text;
+        if (text) onChunk(text);
+    }
 }
