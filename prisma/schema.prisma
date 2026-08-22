@@ -42,6 +42,7 @@ model Document {
   extractionError String?
   createdAt       DateTime         @default(now())
   chunks          DocumentChunks[]
+  messages        Messages[]
 
   @@index([userId])
   @@index([extractedStatus, embeddingStatus])
@@ -58,5 +59,16 @@ model DocumentChunks {
   createdAt  DateTime                     @default(now())
 
   @@unique([documentId, chunkIndex])
+  @@index([documentId])
+}
+
+model Messages {
+  id         String   @id @default(cuid())
+  documentId String
+  role       String
+  text       String   @db.Text
+  createdAt  DateTime @default(now())
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
   @@index([documentId])
 }
