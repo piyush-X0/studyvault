@@ -67,6 +67,7 @@ model Messages {
   documentId String
   role       String
   text       String   @db.Text
+  fileName   String?
   createdAt  DateTime @default(now())
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
