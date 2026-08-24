@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowUp } from "lucide-react";
+import { Plus, ArrowUp, FileText } from "lucide-react";
 import { autoResize } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
@@ -57,12 +57,13 @@ export default function Home() {
 
   async function loadMessages(docId: string) {
     try {
-      const res = await fetch(`/api/documents/${docId}/message`);
+      const res = await fetch(`/api/documents/${docId}/messages`);
       const data = await res.json();
       const loaded = data.messages ?? [];
-      setMessages(loaded.map((m: { role: string; text: string }) => ({
+      setMessages(loaded.map((m: { role: string; text: string, fileName?: string }) => ({
         role: m.role === "user" ? "user" : "assistant",  // ← explicit cast
         text: m.text,
+        fileName: m.fileName ?? undefined
       })));
     } catch {
       console.error("failed to load messages");
@@ -171,10 +172,10 @@ export default function Home() {
     setAsking(true);
     setMessages((prev) => [...prev, { role: "assistant", text: "" }]);
 
-    await fetch(`/api/documents/${docId}/message`, {
+    await fetch(`/api/documents/${docId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: "user", text: userQuestion }),
+      body: JSON.stringify({ role: "user", text: userQuestion, fileName }),
     });
 
     try {
@@ -189,12 +190,13 @@ export default function Home() {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let fullAnswer = "";
+      let fullAnswer = "";        // ← let not const, starts empty, accumulates
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-        fullAnswer += chunk;
+        fullAnswer += chunk;      // ← accumulates here
 
         setMessages((prev) => {
           const updated = [...prev];
@@ -206,7 +208,7 @@ export default function Home() {
         });
       }
 
-      await fetch(`/api/documents/${docId}/message`, {
+      await fetch(`/api/documents/${docId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "assistant", text: fullAnswer }),
@@ -224,9 +226,9 @@ export default function Home() {
   }
 
   function dotColor(mimetype: string) {
-    if (mimetype === "application/pdf") return "bg-red-500";
-    if (mimetype.includes("wordprocessingml")) return "bg-green-500";
-    return "bg-orange-500";
+    if (mimetype === "application/pdf") return "text-red-500";
+    if (mimetype.includes("wordprocessingml")) return "text-blue-500";
+    return "text-orange-500";
   }
 
   return (
@@ -248,23 +250,33 @@ export default function Home() {
       <div className="h-screen w-full flex mx-2 mt-3 overflow-hidden mb-2">
 
         {/* Left Card */}
-        <aside className="w-100 h-full border border-zinc-700 rounded-4xl flex flex-col overflow-hidden">
+        <aside className="w-80 h-full  bg-surface-container backdrop-blur-glass border border-custom-secondary rounded-2xl p-3 overflow-y-auto">
 
           {/* tabs */}
-          <div className="flex gap-2 p-4 shrink-0">
-            <button className="flex-1 py-1.5 text-sm rounded-2xl bg-zinc-700 text-white font-mono">
+          <div className="flex gap-2 p-1 rounded-3xl shrink-0 bg-surface-container">
+            <button className="flex-1 py-1 text-sm rounded-2xl  text-white font-mono">
               My Chat
             </button>
             <button
-              onClick={() => document.getElementById("file-input")?.click()}
-              className="flex-1 py-1.5 text-sm rounded-2xl text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors font-mono"
+              onClick={() => {
+                // reset everything first
+                setActiveDocId(null)
+                setMessages([])
+                setInput("")
+                setPendingFile(null)
+                setPipelineReady(false)
+                setUploadStage("idle")
+                setUploadedDocId(null)
+                // document.getElementById("file-input")?.click()
+              }}
+              className="flex-1 py-1.5 text-sm rounded-2xl text-zinc-400 bg-state-active hover:text-white transition-colors font-mono"
             >
               New Chat
             </button>
           </div>
 
           {/* recents label */}
-          <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest px-4 pb-2 shrink-0">
+          <p className="text-[10px] mt-4 text-zinc-500 font-mono  uppercase tracking-widest px-4 pb-2 shrink-0">
             Recents
           </p>
 
@@ -284,7 +296,10 @@ export default function Home() {
                   if (doc.embeddingStatus === "EMBEDDED") openDocument(doc.id);
                 }}
               >
-                <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor(doc.mimetype)}`} />
+                <span>
+                  <FileText className={`w-4 h-4 mb-2 ${dotColor(doc.mimetype)}`} />
+                </span>
+
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="text-xs text-white truncate font-mono">
                     {doc.filename}
@@ -380,7 +395,7 @@ export default function Home() {
 
           {/* Query Card */}
           <footer className="mx-9 py-3">
-            <div className="bg-[#1b1c1e] border-2 border-zinc-700 rounded-4xl p-4 px-5">
+            <div className="bg-[#1b1c1e] border border-custom-secondary rounded-3xl p-4 px-5">
               {pendingFile && (
                 <div className="flex items-center gap-2 mb-3 bg-zinc-800 border border-zinc-700 rounded-2xl px-3 py-2 w-fit max-w-55">
                   <div className="flex flex-col min-w-0 flex-1">
