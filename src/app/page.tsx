@@ -38,6 +38,8 @@ export default function Home() {
 
   const pollingRef = useRef<NodeJS.Timeout>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const [thinkingLabel, setThinkingLabel] = useState('thinking...')
+  const thinkingTimerRef = useRef<NodeJS.Timeout[]>([])
 
   useEffect(() => { fetchDocuments() }, []);
 
@@ -162,6 +164,23 @@ export default function Home() {
     }, 120_000);
   }
 
+  function startThinkingTimer() {
+    thinkingTimerRef.current.forEach(clearTimeout)
+    thinkingTimerRef.current = []
+    setThinkingLabel("thinking...")
+    thinkingTimerRef.current.push(
+      setTimeout(() => setThinkingLabel("preparing your answer..."), 8000)
+    )
+    thinkingTimerRef.current.push(
+      setTimeout(() => setThinkingLabel("almost there..."), 14000)
+    )
+  }
+  function clearThinkingTimer() {
+    thinkingTimerRef.current.forEach(clearTimeout)
+    thinkingTimerRef.current = []
+    setThinkingLabel("thinking...")
+  }
+
   async function handleQuery(fileName?: string) {
     if (!input.trim() || !activeDocId || asking) return;
     const userQuestion = input.trim();
@@ -170,6 +189,7 @@ export default function Home() {
     setMessages((prev) => [...prev, { role: "user", text: userQuestion, fileName }]);
     setInput("");
     setAsking(true);
+    startThinkingTimer()
     setMessages((prev) => [...prev, { role: "assistant", text: "" }]);
 
     await fetch(`/api/documents/${docId}/messages`, {
@@ -190,13 +210,17 @@ export default function Home() {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let fullAnswer = "";        // ← let not const, starts empty, accumulates
-
+      let fullAnswer = "";
+      let firstChunk = true
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (firstChunk) {
+          clearThinkingTimer()
+          firstChunk = false
+        }
         const chunk = decoder.decode(value, { stream: true });
-        fullAnswer += chunk;      // ← accumulates here
+        fullAnswer += chunk;
 
         setMessages((prev) => {
           const updated = [...prev];
@@ -215,12 +239,14 @@ export default function Home() {
       });
 
     } catch {
+      clearThinkingTimer()
       setMessages((prev) => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: "assistant", text: "Something went wrong." };
+        updated[updated.length - 1] = { role: "assistant", text: "Server is busy , please try again later..." };
         return updated;
       });
     } finally {
+      clearThinkingTimer()
       setAsking(false);
     }
   }
@@ -234,23 +260,16 @@ export default function Home() {
   return (
     <div className="h-screen bg-[#202124] text-[#E8E8E8] flex flex-col">
       {/* Header */}
-      <header className="h-12 px-15 pt-5 shrink-0 flex items-center justify-between">
-        <span className="text-[25px] font-bold tracking-widest">LexiChat</span>
+      <header className="h-12 pl-5 pt-3 shrink-0 flex justify-self-start">
+        <span className="text-[25px]  font-mono">DataFolio</span>
 
-        <a href="https://github.com/piyush-X0"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-md text-[#6B6B6B] hover:text-[#E8E8E8] transition-colors"
-        >
-          Github
-        </a>
       </header>
 
       {/* Main Layout */}
       <div className="h-screen w-full flex mx-2 mt-3 overflow-hidden mb-2">
 
         {/* Left Card */}
-        <aside className="w-fit h-full  font-custom-theme  bg-surface-container backdrop-blur-glass border border-custom-secondary rounded-2xl py-3  px-2 overflow-y-auto">
+        <aside className="max-w-fit min-w-77 h-full  font-custom-theme  bg-surface-container backdrop-blur-glass border border-custom-secondary rounded-2xl py-3  px-2 overflow-y-auto">
 
           {/* tabs */}
           <div className="flex gap-2  rounded-3xl shrink-0 bg-surface-container   ">
@@ -289,8 +308,8 @@ export default function Home() {
             {documents.map((doc) => (
               <div
                 key={doc.id}
-                className={`  relative flex items-center gap-2 px-3 py-2 m-1 border-custom-secondary rounded-[9px] transition-colors
-                  ${activeDocId === doc.id ? "bg-zinc-600  w-70" : "hover:bg-zinc-600"}
+                className={` w-70 relative flex items-center gap-2 px-3 py-2 m-1 border-custom-secondary rounded-[9px] transition-colors
+                  ${activeDocId === doc.id ? "bg-zinc-600" : "hover:bg-zinc-600"}
                   ${doc.embeddingStatus !== "EMBEDDED" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
                 `}
                 onClick={() => {
@@ -398,7 +417,7 @@ export default function Home() {
             }
             {
               asking && (
-                <p className="text-zinc-500 text-sm font-mono animate-pulse">thinking...</p>
+                <p className="text-zinc-500 text-sm font-mono animate-pulse">{thinkingLabel}</p>
               )
             }
             <div ref={chatBottomRef} />
