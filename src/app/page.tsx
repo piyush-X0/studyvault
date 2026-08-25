@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowUp, FileText, LayoutGrid, Square } from "lucide-react";
+import { Plus, ArrowUp, FileText, LayoutGrid, Square, EllipsisVertical, Trash2 } from "lucide-react";
 import { autoResize } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
@@ -35,12 +35,16 @@ export default function Home() {
   >("idle");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
+  const [searchQuery, setSearchQuery] = useState("");
   const pollingRef = useRef<NodeJS.Timeout>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const [thinkingLabel, setThinkingLabel] = useState('thinking...')
   const thinkingTimerRef = useRef<NodeJS.Timeout[]>([])
+  const menuRef = useRef<HTMLDivElement>(null);
 
+  const filteredDocuments = documents.filter((doc) =>
+    doc.filename.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   useEffect(() => { fetchDocuments() }, []);
 
   useEffect(() => {
@@ -63,7 +67,7 @@ export default function Home() {
       const data = await res.json();
       const loaded = data.messages ?? [];
       setMessages(loaded.map((m: { role: string; text: string, fileName?: string }) => ({
-        role: m.role === "user" ? "user" : "assistant",  // ← explicit cast
+        role: m.role === "user" ? "user" : "assistant",
         text: m.text,
         fileName: m.fileName ?? undefined
       })));
@@ -257,6 +261,21 @@ export default function Home() {
     return "text-orange-500";
   }
 
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null);
+      }
+    }
+    if (openMenuId) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openMenuId]);
+
   return (
     <div className="h-screen bg-[#202124] text-[#E8E8E8] flex flex-col">
       {/* Header */}
@@ -269,100 +288,121 @@ export default function Home() {
       <div className="h-screen w-full flex mx-2 mt-3 overflow-hidden mb-2">
 
         {/* Left Card */}
-        <aside className="max-w-fit min-w-77 h-full  font-custom-theme  bg-surface-container backdrop-blur-glass border border-custom-secondary rounded-2xl py-3  px-2 overflow-y-auto">
+        <aside className="max-w-fit min-w-77 h-full font-custom-theme bg-surface-container backdrop-blur-glass border border-custom-secondary rounded-2xl flex flex-col overflow-hidden">
 
-          {/* tabs */}
-          <div className="flex gap-2  rounded-3xl shrink-0 bg-surface-container   ">
-            <button className="flex-1 py-1 text-sm rounded-2xl  bg-state-active text-[#F1F3F4] flex items-center justify-center gap-1 font-semibold ">
-              <LayoutGrid className=" w-3 h-3 stroke-3" />
-              <span>My Chat</span>
-            </button>
-            <button
-              onClick={() => {
-                // reset everything first
-                setActiveDocId(null)
-                setMessages([])
-                setInput("")
-                setPendingFile(null)
-                setPipelineReady(false)
-                setUploadStage("idle")
-                setUploadedDocId(null)
-                // document.getElementById("file-input")?.click()
-              }}
-              className="flex-1 py-1.5 text-sm rounded-2xl text-[#BDC1C6] hover:bg-neutral-600 hover:text-white transition-colors font-mono"
-            >
-              New Chat
-            </button>
-          </div>
+          {/* Single Scrollable Container */}
+          <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none [&::-webkit-scrollbar]:hidden p-3 pt-4">
 
-          {/* recents label */}
-          <p className="text-[10px] mt-4 text-zinc-500 font-mono  uppercase tracking-widest px-4 pb-2 shrink-0">
-            Recents
-          </p>
-
-          {/* document list */}
-          <div className="flex-1 overflow-y-auto  ">
-            {documents.length === 0 && (
-              <p className="text-xs text-zinc-600 px-3 py-2 font-mono">No documents yet</p>
-            )}
-            {documents.map((doc) => (
-              <div
-                key={doc.id}
-                className={` w-70 relative flex items-center gap-2 px-3 py-2 m-1 border-custom-secondary rounded-[9px] transition-colors
-                  ${activeDocId === doc.id ? "bg-zinc-600" : "hover:bg-zinc-600"}
-                  ${doc.embeddingStatus !== "EMBEDDED" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-                `}
+            {/* 1. Tabs Bar (Scrolls away naturally) */}
+            <div className="flex gap-2 rounded-3xl bg-surface-container mb-3">
+              <button className="flex-1 py-1 text-sm rounded-2xl bg-state-active text-[#F1F3F4] flex items-center justify-center gap-1 font-semibold">
+                <LayoutGrid className="w-3 h-3 stroke-3" />
+                <span>My Chat</span>
+              </button>
+              <button
                 onClick={() => {
-                  if (doc.embeddingStatus === "EMBEDDED") openDocument(doc.id);
+                  setActiveDocId(null);
+                  setMessages([]);
+                  setInput("");
+                  setPendingFile(null);
+                  setPipelineReady(false);
+                  setUploadStage("idle");
+                  setUploadedDocId(null);
                 }}
+                className="flex-1 py-1.5 text-sm rounded-2xl text-[#BDC1C6] hover:bg-neutral-600 hover:text-white transition-colors font-mono"
               >
-                <span>
-                  <FileText className={`w-4.5 h-4.5 mb-3  ${dotColor(doc.mimetype)}`} />
-                </span>
+                New Chat
+              </button>
+            </div>
 
-                <div className="flex flex-col min-w-0 flex-1 ">
-                  <span className="text-[14px] text-white truncate font-custom-theme font-semibold">
-                    {doc.filename}
-                  </span>
-                  <span className="text-[9px] text-zinc-400 font-mono  flex items-center gap-1">
-                    <span>
-                      <Square className=" w-2 h-2  stroke-1" />
-                    </span>
-                    <span>
-                      {new Date(doc.createdAt).toLocaleDateString("en-US", {
-                        month: "short", day: "numeric", year: "numeric"
-                      })}</span>
-                  </span>
-                </div>
+            {/* 2.  Search Input  */}
+            <div className="sticky -top-4 z-20  py-2 mb-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search chats..."
+                className="w-full bg-zinc-800/80  border-custom-secondary text-xs text-white placeholder-zinc-500 rounded-xl px-3 py-2 outline-none  transition-colors font-mono"
+              />
+            </div>
 
-                {/* three dot menu */}
-                <div className="relative shrink-0">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenMenuId(openMenuId === doc.id ? null : doc.id);
+            {/* 3. Document List */}
+            <div>
+              {filteredDocuments.length === 0 ? (
+                <p className="text-xs text-zinc-600 px-3 py-2 font-mono">
+                  {searchQuery ? "No matching chats found" : "No documents yet"}
+                </p>
+              ) : (
+                filteredDocuments.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className={`w-70 relative flex items-center gap-2 px-3 py-2 m-1 border-custom-secondary rounded-[9px] transition-colors group
+              ${activeDocId === doc.id ? "bg-zinc-600" : "hover:bg-zinc-600"}
+              ${doc.embeddingStatus !== "EMBEDDED" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+            `}
+                    onClick={() => {
+                      if (doc.embeddingStatus === "EMBEDDED") openDocument(doc.id);
                     }}
-                    className="text-zinc-500 hover:text-white text-sm px-1 transition-colors"
                   >
-                    ···
-                  </button>
-                  {openMenuId === doc.id && (
-                    <div className="absolute right-0 top-6 z-10 bg-zinc-800 border border-zinc-700 rounded-xl overflow-hidden w-28 shadow-lg">
+                    <span>
+                      <FileText className={`w-4.5 h-4.5 mb-3 ${dotColor(doc.mimetype)}`} />
+                    </span>
+
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-[14px] text-white truncate font-custom-theme font-semibold">
+                        {doc.filename}
+                      </span>
+                      <span className="text-[9px] text-zinc-400 font-mono flex items-center gap-1">
+                        <span>
+                          <Square className="w-2 h-2 stroke-1" />
+                        </span>
+                        <span>
+                          {new Date(doc.createdAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </span>
+                    </div>
+
+                    {/* Three-dot menu */}
+                    <div
+                      className="relative shrink-0"
+                      onMouseLeave={() => setOpenMenuId(null)}
+                    >
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteDocument(doc.id);
-                          setOpenMenuId(null);
+                          setOpenMenuId(openMenuId === doc.id ? null : doc.id);
                         }}
-                        className="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-zinc-700 transition-colors font-mono"
+                        className={`text-zinc-500 hover:text-white text-sm px-1 transition-colors ${activeDocId === doc.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                          }`}
                       >
-                        Delete
+                        <EllipsisVertical className="w-4 h-4 text-bold" />
                       </button>
+                      {openMenuId === doc.id && (
+                        <div className="absolute right-0 top-6 z-10 bg-zinc-800 border-custom-secondary rounded-[9px] overflow-hidden w-20 shadow-lg">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteDocument(doc.id);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full flex items-center justify-around py-1 text-xs text-red-400 hover:bg-red-600 hover:text-white overflow-hidden border-custom-secondary rounded-[8px] transition-colors font-mono"
+                          >
+                            <span>
+                              <Trash2 className="w-3 h-3" />
+                            </span>
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            ))}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           <input
@@ -378,7 +418,7 @@ export default function Home() {
               await handleUpload(file);
             }}
           />
-        </aside >
+        </aside>
 
         {/* Right side */}
         < main className="flex-1 flex flex-col justify-between h-full min-w-0" >

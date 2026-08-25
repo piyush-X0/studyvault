@@ -4,6 +4,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
 @utility bg-surface-container {
   --backgroundColor-surface-container: 22 23 24;
   --textColor-primary: 241 243 244;
