@@ -18,6 +18,11 @@
     var(--backgroundColor-state-active) / var(--tw-bg-opacity, 1)
   );
 }
+@utility font-custom-theme {
+  --font-sans-theme: "Google Sans";
+  font-family:
+    var(--font-sans-theme), system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
 
 @theme inline {
   --color-background: var(--background);

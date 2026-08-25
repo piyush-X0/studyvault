@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowUp, FileText } from "lucide-react";
+import { Plus, ArrowUp, FileText, LayoutGrid, Square } from "lucide-react";
 import { autoResize } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
@@ -250,12 +250,13 @@ export default function Home() {
       <div className="h-screen w-full flex mx-2 mt-3 overflow-hidden mb-2">
 
         {/* Left Card */}
-        <aside className="w-80 h-full  bg-surface-container backdrop-blur-glass border border-custom-secondary rounded-2xl p-3 overflow-y-auto">
+        <aside className="w-fit h-full  font-custom-theme  bg-surface-container backdrop-blur-glass border border-custom-secondary rounded-2xl py-3  px-2 overflow-y-auto">
 
           {/* tabs */}
-          <div className="flex gap-2 p-1 rounded-3xl shrink-0 bg-surface-container">
-            <button className="flex-1 py-1 text-sm rounded-2xl  text-white font-mono">
-              My Chat
+          <div className="flex gap-2  rounded-3xl shrink-0 bg-surface-container   ">
+            <button className="flex-1 py-1 text-sm rounded-2xl  bg-state-active text-[#F1F3F4] flex items-center justify-center gap-1 font-semibold ">
+              <LayoutGrid className=" w-3 h-3 stroke-3" />
+              <span>My Chat</span>
             </button>
             <button
               onClick={() => {
@@ -269,7 +270,7 @@ export default function Home() {
                 setUploadedDocId(null)
                 // document.getElementById("file-input")?.click()
               }}
-              className="flex-1 py-1.5 text-sm rounded-2xl text-zinc-400 bg-state-active hover:text-white transition-colors font-mono"
+              className="flex-1 py-1.5 text-sm rounded-2xl text-[#BDC1C6] hover:bg-neutral-600 hover:text-white transition-colors font-mono"
             >
               New Chat
             </button>
@@ -281,15 +282,15 @@ export default function Home() {
           </p>
 
           {/* document list */}
-          <div className="flex-1 overflow-y-auto px-2">
+          <div className="flex-1 overflow-y-auto  ">
             {documents.length === 0 && (
               <p className="text-xs text-zinc-600 px-3 py-2 font-mono">No documents yet</p>
             )}
             {documents.map((doc) => (
               <div
                 key={doc.id}
-                className={`relative flex items-center gap-2 px-3 py-2 rounded-xl transition-colors
-                  ${activeDocId === doc.id ? "bg-zinc-700" : "hover:bg-zinc-800"}
+                className={`  relative flex items-center gap-2 px-3 py-2 m-1 border-custom-secondary rounded-[9px] transition-colors
+                  ${activeDocId === doc.id ? "bg-zinc-600  w-70" : "hover:bg-zinc-600"}
                   ${doc.embeddingStatus !== "EMBEDDED" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
                 `}
                 onClick={() => {
@@ -297,17 +298,21 @@ export default function Home() {
                 }}
               >
                 <span>
-                  <FileText className={`w-4 h-4 mb-2 ${dotColor(doc.mimetype)}`} />
+                  <FileText className={`w-4.5 h-4.5 mb-3  ${dotColor(doc.mimetype)}`} />
                 </span>
 
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs text-white truncate font-mono">
+                <div className="flex flex-col min-w-0 flex-1 ">
+                  <span className="text-[14px] text-white truncate font-custom-theme font-semibold">
                     {doc.filename}
                   </span>
-                  <span className="text-[10px] text-zinc-500 font-mono">
-                    {new Date(doc.createdAt).toLocaleDateString("en-US", {
-                      month: "short", day: "numeric", year: "numeric"
-                    })}
+                  <span className="text-[9px] text-zinc-400 font-mono  flex items-center gap-1">
+                    <span>
+                      <Square className=" w-2 h-2  stroke-1" />
+                    </span>
+                    <span>
+                      {new Date(doc.createdAt).toLocaleDateString("en-US", {
+                        month: "short", day: "numeric", year: "numeric"
+                      })}</span>
                   </span>
                 </div>
 
@@ -354,47 +359,53 @@ export default function Home() {
               await handleUpload(file);
             }}
           />
-        </aside>
+        </aside >
 
         {/* Right side */}
-        <main className="flex-1 flex flex-col justify-between h-full min-w-0">
+        < main className="flex-1 flex flex-col justify-between h-full min-w-0" >
 
           {/* Chat area */}
-          <div className="flex-1 overflow-y-auto px-9 py-4 flex flex-col gap-6">
-            {messages.length === 0 && (
-              <p className="text-zinc-600 text-sm font-mono">Upload a document to start</p>
-            )}
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end" : "items-start"}`}
-              >
-                {msg.fileName && (
-                  <div className="bg-zinc-800 border border-zinc-700 rounded-2xl px-3 py-2 mb-1 w-fit">
-                    <span className="text-xs text-white font-mono block truncate max-w-50">
-                      {msg.fileName}
-                    </span>
-                    <span className="text-[10px] text-zinc-500 font-mono uppercase">
-                      {msg.fileName.split(".").pop()}
-                    </span>
-                  </div>
-                )}
-                <p className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.role === "user"
-                  ? "max-w-[70%] px-4 py-2 rounded-2xl bg-zinc-700 text-white"
-                  : "text-zinc-300 max-w-[90%]"
-                  }`}>
-                  {msg.text}
-                </p>
-              </div>
-            ))}
-            {asking && (
-              <p className="text-zinc-500 text-sm font-mono animate-pulse">thinking...</p>
-            )}
+          < div className="flex-1 overflow-y-auto px-13 py-4 flex flex-col gap-6" >
+            {
+              messages.length === 0 && (
+                <p className="text-zinc-600 text-sm font-mono">Upload a document to start</p>
+              )
+            }
+            {
+              messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end" : "items-start"}`}
+                >
+                  {msg.fileName && (
+                    <div className="bg-zinc-800 border border-zinc-700 rounded-2xl px-3 py-2 mb-1 w-fit">
+                      <span className="text-xs text-white font-mono block truncate max-w-50">
+                        {msg.fileName}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 font-mono uppercase">
+                        {msg.fileName.split(".").pop()}
+                      </span>
+                    </div>
+                  )}
+                  <p className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.role === "user"
+                    ? "max-w-[70%] px-4 py-2 rounded-2xl bg-zinc-700 text-white"
+                    : "text-zinc-300 max-w-[90%]"
+                    }`}>
+                    {msg.text}
+                  </p>
+                </div>
+              ))
+            }
+            {
+              asking && (
+                <p className="text-zinc-500 text-sm font-mono animate-pulse">thinking...</p>
+              )
+            }
             <div ref={chatBottomRef} />
-          </div>
+          </div >
 
           {/* Query Card */}
-          <footer className="mx-9 py-3">
+          < footer className="mx-9 py-3" >
             <div className="bg-[#1b1c1e] border border-custom-secondary rounded-3xl p-4 px-5">
               {pendingFile && (
                 <div className="flex items-center gap-2 mb-3 bg-zinc-800 border border-zinc-700 rounded-2xl px-3 py-2 w-fit max-w-55">
@@ -481,9 +492,9 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-          </footer>
-        </main>
-      </div>
-    </div>
+          </footer >
+        </main >
+      </div >
+    </div >
   );
 }
