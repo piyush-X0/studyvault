@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             if (!c.content || c.content.trim().length === 0) {
             }
         });
-        await prisma.document.update({
+        prisma.document.update({
             where: { id },
             data: { embeddingStatus: "PROCESSING" }
         });
