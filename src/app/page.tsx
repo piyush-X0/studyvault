@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowUp, FileText, LayoutGrid, Square, EllipsisVertical, Trash2 } from "lucide-react";
+import { Plus, ArrowUp, FileText, LayoutGrid, Square, EllipsisVertical, Search, Trash2 } from "lucide-react";
 import { autoResize } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
@@ -285,17 +285,17 @@ export default function Home() {
       </header>
 
       {/* Main Layout */}
-      <div className="h-screen w-full flex mx-2 mt-3 overflow-hidden mb-2">
+      <div className="h-screen w-full flex mx-2 mt-3 overflow-hidden mb-2 ">
 
         {/* Left Card */}
-        <aside className="max-w-fit min-w-77 h-full font-custom-theme bg-surface-container backdrop-blur-glass border border-custom-secondary rounded-2xl flex flex-col overflow-hidden">
+        <aside className="mx-auto w-90 h-full pb-5 font-custom-theme bg-surface-container backdrop-blur-glass border border-zinc-700 rounded-2xl flex flex-col overflow-hidden">
 
           {/* Single Scrollable Container */}
           <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none [&::-webkit-scrollbar]:hidden p-3 pt-4">
 
             {/* 1. Tabs Bar (Scrolls away naturally) */}
-            <div className="flex gap-2 rounded-3xl bg-surface-container mb-3">
-              <button className="flex-1 py-1 text-sm rounded-2xl bg-state-active text-[#F1F3F4] flex items-center justify-center gap-1 font-semibold">
+            <div className="flex gap-2 rounded-3xl bg-surface-container mb-3 text-md ">
+              <button className="flex-1 py-1  rounded-2xl bg-state-active text-[#F1F3F4] flex items-center justify-center gap-1 font-semibold">
                 <LayoutGrid className="w-3 h-3 stroke-3" />
                 <span>My Chat</span>
               </button>
@@ -309,22 +309,36 @@ export default function Home() {
                   setUploadStage("idle");
                   setUploadedDocId(null);
                 }}
-                className="flex-1 py-1.5 text-sm rounded-2xl text-[#BDC1C6] hover:bg-neutral-600 hover:text-white transition-colors font-mono"
+                className="flex-1 py-1.5  rounded-2xl text-[#BDC1C6] hover:bg-neutral-600 hover:text-white transition-colors font-mono"
               >
                 New Chat
               </button>
             </div>
 
-            {/* 2.  Search Input  */}
-            <div className="sticky -top-4 z-20  py-2 mb-2">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search chats..."
-                className="w-full bg-zinc-800/80  border-custom-secondary text-xs text-white placeholder-zinc-500 rounded-xl px-3 py-2 outline-none  transition-colors font-mono"
-              />
+            {/* 2. Search Input */}
+            <div className="sticky top-0 z-20   mb-2">
+              <div className="relative flex items-center">
+                {/* Search Icon */}
+                <span className="absolute left-4 text-zinc-500 pointer-events-none">
+                  <Search className="w-4 h-4" />
+                </span>
+
+                {/* Input Field */}
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search chats..."
+                  className="w-full bg-zinc-800/80  btext-[15px] text-white placeholder-zinc-500 rounded-[25px] pl-10 pr-4 py-2 outline-none transition-colors font-mono"
+                />
+              </div>
             </div>
+
+            {/* Recents Header */}
+            <div className="flex justify-start text-zinc-500 text-xl font-semibold py-1 px-1">
+              <p>Recents</p>
+            </div>
+
 
             {/* 3. Document List */}
             <div>
@@ -336,7 +350,7 @@ export default function Home() {
                 filteredDocuments.map((doc) => (
                   <div
                     key={doc.id}
-                    className={`w-70 relative flex items-center gap-2 px-3 py-2 m-1 border-custom-secondary rounded-[9px] transition-colors group
+                    className={`w-80 relative flex items-center gap-2 px-1 py-2 m-1 border-custom-secondary rounded-[9px] transition-colors group
               ${activeDocId === doc.id ? "bg-zinc-600" : "hover:bg-zinc-600"}
               ${doc.embeddingStatus !== "EMBEDDED" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
             `}
