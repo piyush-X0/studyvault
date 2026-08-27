@@ -5,7 +5,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
     "application/pdf",
     "text/plain",
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "UnSupported file tye" }, { status: 400 });
         }
         if (size > MAX_FILE_SIZE) {
-            return NextResponse.json({ error: "File too large. Maximum size is 10MB" }, { status: 400 });
+            return NextResponse.json({ error: "File too large. Maximum size is 5MB" }, { status: 400 });
         }
         const r2Key = `${DEV_USER_ID}/${randomUUID()}-${filename}`
         const command = new PutObjectCommand({
