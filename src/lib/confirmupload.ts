@@ -7,13 +7,13 @@ export async function confirmUpload(documentId: string) {
 
     const documents = await prisma.document.findUnique({
         where: { id: documentId },
-        select: { id: true, r2Key: true, uploadStatus: true }
+        select: { id: true, r2Key: true, uploadedStatus: true }
     });
 
     if (!documents) {
         return { ok: false as const, reason: "NOT FOUND " as const };
     }
-    if (documents.uploadStatus == "UPLOADED") {
+    if (documents.uploadedStatus == "UPLOADED") {
         return { ok: true as const, reason: "ALREADY UPLOADED" };
     }
 
