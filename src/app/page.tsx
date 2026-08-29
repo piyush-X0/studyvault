@@ -41,6 +41,7 @@ export default function Home() {
   const [thinkingLabel, setThinkingLabel] = useState('thinking...')
   const thinkingTimerRef = useRef<NodeJS.Timeout[]>([])
   const menuRef = useRef<HTMLDivElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   const filteredDocuments = documents.filter((doc) =>
     doc.filename.toLowerCase().includes(searchQuery.toLowerCase())
@@ -110,6 +111,15 @@ export default function Home() {
           size: file.size,
         }),
       });
+
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("upload rejected:", data.error);
+        setUploadStage("failed");
+        setPendingFile(null);
+        return;
+      }
+
       const { presignedUrl, documentId } = await res.json();
       await fetch(presignedUrl, {
         method: "PUT",
@@ -126,10 +136,10 @@ export default function Home() {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
+      showUploadError("Upload failed. Please try again.")
       setUploadStage("failed");
     }
   }
-
   function startPolling(docId: string) {
     if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(async () => {
@@ -151,6 +161,9 @@ export default function Home() {
           clearInterval(pollingRef.current!);
           pollingRef.current = null;
           setUploadStage("failed");
+          setPendingFile(null);
+          showUploadError("Processing failed. Please try a smaller or different file.");
+          setTimeout(() => fetchDocuments(), 6000);
         }
       } catch {
         if (pollingRef.current) {
@@ -276,6 +289,11 @@ export default function Home() {
     };
   }, [openMenuId]);
 
+  function showUploadError(message: string) {
+    setUploadError(message)
+    setTimeout(() => setUploadError(null), 3000)
+
+  }
   return (
     <div className="h-screen bg-[#202124] text-[#E8E8E8] flex flex-col">
       {/* Header */}
@@ -427,6 +445,27 @@ export default function Home() {
             onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
+              if (file.size > 5 * 1024 * 1024) {
+                showUploadError("File too large. Maximum size is 5MB.")
+                e.target.value = ""
+                return
+              }
+
+              const ALLOWED = [
+                "application/pdf",
+                "text/plain",
+                "text/markdown",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              ];
+
+              if (!ALLOWED.includes(file.type)) {
+                showUploadError("Unsupported file type. Use PDF, DOCX, or TXT.")
+                setPendingFile(null);
+                setUploadStage("failed");
+                e.target.value = "";
+                return;
+              }
+              setUploadError(null)
               setPendingFile(file);
               e.target.value = "";
               await handleUpload(file);
@@ -518,7 +557,9 @@ export default function Home() {
                   )}
                 </div>
               )}
-
+              {uploadError && (
+                <p className="text-red-400 text-xs font-mono mb-2 px-1">{uploadError}</p>
+              )}
               <textarea
                 rows={1}
                 value={input}
@@ -543,7 +584,10 @@ export default function Home() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  onClick={() => document.getElementById("file-input")?.click()}
+                  onClick={() => {
+                    setUploadError(null)
+                    document.getElementById("file-input")?.click()
+                  }}
                   className="text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full h-8 w-8 transition-all"
                 >
                   <Plus className="w-5 h-5" />
