@@ -5,9 +5,9 @@ import type { ChatMessage } from "@/lib/chat-data";
 function renderInline(text: string) {
     return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
         part.startsWith("**") && part.endsWith("**") ? (
-            <strong key={i} className="font-semibold text-foreground">
+            <span key={i} className="font-normal text-foreground/90">
                 {part.slice(2, -2)}
-            </strong>
+            </span>
         ) : (
             <span key={i}>{part}</span>
         ),
