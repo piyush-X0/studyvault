@@ -1,7 +1,7 @@
 import { snapToSentenceBoundary } from "@/scripts/snapToBoundaries";
 
-const DEFAULT_CHUNK_SIZE = 1000;
-const DEFAULT_OVERLAP = 75;
+const DEFAULT_CHUNK_SIZE = 4000;
+const DEFAULT_OVERLAP = 400;
 
 interface Chunk {
     content: string,

@@ -13,7 +13,6 @@ function normalize(vector: number[]): number[] {
     }
     return vector.map((v) => v / magnitude);
 }
-
 export async function generateEmbeddings(text: string[]): Promise<number[][]> {
     if (text.length === 0) return [];
 
@@ -23,25 +22,30 @@ export async function generateEmbeddings(text: string[]): Promise<number[][]> {
         batches.push(text.slice(i, i + BATCH_SIZE));
     }
 
-    // run all batches in parallel
-    const results = await Promise.all(
-        batches.map((batch) =>
-            genAI.models.embedContent({
-                model: EMBEDDING_MODEL,
-                contents: batch,
-                config: { outputDimensionality: OUTPUT_DIMENSIONS }
-            })
-        )
-    );
+    const allEmbeddings: number[][] = [];
 
-    const allEmbeddings = results.flatMap((r) => r.embeddings ?? []);
+    for (const batch of batches) {
+        const result = await genAI.models.embedContent({
+            model: EMBEDDING_MODEL,
+            contents: batch,
+            config: { outputDimensionality: OUTPUT_DIMENSIONS }
+        })
 
-    if (allEmbeddings.length !== text.length) {
-        throw new Error(`Embedding count mismatch`);
+        const embeddings = result.embeddings ?? []
+        if (embeddings.length !== batch.length) {
+            throw new Error(`Batch mismatch: sent ${batch.length}, got ${embeddings.length}`)
+        }
+
+        for (const e of embeddings) {
+            if (!e.values) throw new Error("Missing embedding values")
+            allEmbeddings.push(normalize(e.values))
+        }
+
+        // respect rate limit — 100 requests/min = ~600ms between batches
+        if (batches.length > 1) {
+            await new Promise(r => setTimeout(r, 700))
+        }
     }
 
-    return allEmbeddings.map((e, i) => {
-        if (!e.values) throw new Error(`Missing value at index ${i}`);
-        return normalize(e.values);
-    });
+    return allEmbeddings
 }
