@@ -32,7 +32,7 @@ export interface ChatMessage {
 
 export type UploadStage = "idle" | "uploading" | "processing" | "ready" | "failed";
 
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
 
 export const ALLOWED_MIME = [
     "application/pdf",
@@ -111,12 +111,14 @@ export async function uploadDocument(file: File): Promise<string> {
     }
 
     const { presignedUrl, documentId } = await res.json();
-
-    await fetch(presignedUrl, {
+    const uploadResponse = await fetch(presignedUrl, {
         method: "PUT",
         body: file,
         headers: { "Content-Type": file.type },
-    });
+    })
+    if (!uploadResponse.ok) {
+        throw new Error("File upload to storage failed")
+    }
 
     await fetch(`/api/documents/${documentId}/confirm`, { method: "POST" });
     return documentId as string;
