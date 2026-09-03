@@ -23,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             return NextResponse.json({ error: "ALREADY EXTRACTED" }, { status: 200 });
         }
 
-        prisma.document.update({
+        await prisma.document.update({
             where: { id },
             data: { extractedStatus: "PROCESSING", extractionError: null }
         });
