@@ -20,7 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             return NextResponse.json({ error: "Already Embedded" }, { status: 200 });
         }
         if (document.embeddingStatus == "PROCESSING") {
-            return NextResponse.json({ error: "Emedding already in Progess" }, { status: 409 });
+            return NextResponse.json({ error: "Embedding already in Progess" }, { status: 409 });
         }
 
         const chunks = await prisma.documentChunks.findMany({
