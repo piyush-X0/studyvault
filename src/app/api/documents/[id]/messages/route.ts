@@ -1,5 +1,7 @@
 import { DEV_USER_ID, getDocumentForUser } from "@/lib/getDocument";
 import { prisma } from "@/lib/prisma";
+import { messageBodyScehma } from "@/lib/schemas/messages";
+import { parseJsonBody } from "@/lib/validation";
 import { NextRequest, NextResponse } from "next/server";
 
 
@@ -8,7 +10,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     try {
 
         const { id } = await params;
-        const { role, text, fileName } = await req.json();
+
+        const raw = await req.json();
+        const { role, text, filename } = parseJsonBody(raw, messageBodyScehma);
 
         if (!role || !text) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -18,12 +22,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             return NextResponse.json({ error: "Not found" }, { status: 404 });
         }
         const message = await prisma.messages.create({
-            data: { documentId: id, role, text, fileName }
+            data: { documentId: id, role, text, filename }
         });
 
         return NextResponse.json({ message });
 
     } catch (error) {
+        if (error instanceof Error && (error as any).issues) {
+            return NextResponse.json({ error: "Invalid request Body", details: (error as any).issues }, { status: 400 });
+        }
         console.error("Preserving messages failed : ", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
@@ -42,7 +49,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const messages = await prisma.messages.findMany({
             where: { documentId: id },
             orderBy: { createdAt: "asc" },
-            select: { id: true, role: true, text: true, fileName: true, createdAt: true }
+            select: { id: true, role: true, text: true, filename: true, createdAt: true }
         });
 
         return NextResponse.json({ messages });

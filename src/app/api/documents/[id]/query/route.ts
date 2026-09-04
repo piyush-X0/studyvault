@@ -1,19 +1,17 @@
 import { streamAnswer } from "@/lib/answers";
 import { generateEmbeddings } from "@/lib/embedding";
 import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
+import { queryBodySchema } from "@/lib/schemas/query";
 import { findRelevantChunks } from "@/lib/search";
+import { parseJsonBody } from "@/lib/validation";
 import { NextRequest, NextResponse } from "next/server";
 
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
-        const body = await req.json();
-        const question: string = body.question;
-
-        if (!question || !question.trim()) {
-            return NextResponse.json({ error: "Question is required" }, { status: 400 });
-        }
+        const raw = await req.json();
+        const { question } = parseJsonBody(raw, queryBodySchema);
 
         const document = await getDocumentForUser(id, DEV_USER_ID, {
             embeddingStatus: true
@@ -50,7 +48,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         });
 
     } catch (error) {
-        console.error("query failed : ", error)
+        if (error instanceof Error && (error as any).issues) {
+            return NextResponse.json({
+                error: "Internal request body", details: (error as any).issues
+            },
+                { status: 400 });
+        }
+        console.error("Query failed:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

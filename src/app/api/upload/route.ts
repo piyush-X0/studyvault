@@ -4,6 +4,8 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import { parseJsonBody } from "@/lib/validation";
+import { uploadBodySchema } from "@/lib/schemas/upload";
 
 const MAX_FILE_SIZE = 3 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
@@ -15,7 +17,8 @@ const ALLOWED_TYPES = new Set([
 export async function POST(req: NextRequest) {
     const DEV_USER_ID = "dev-user-id";//later will replace with session.id after next-auth
     try {
-        const { filename, contentType, size } = await req.json();
+        const raw = await req.json();
+        const { filename, contentType, size } = parseJsonBody(raw, uploadBodySchema);
 
         if (!filename || !contentType || !size) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 })
@@ -47,7 +50,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ presignedUrl, documentId: document.id, r2Key }, { status: 201 });
     }
     catch (error) {
-        console.error("UPloading failed : ", error);
+        if (error instanceof Error && (error as any).issues) {
+            return NextResponse.json({ error: "Invalid request body", details: (error as any).issues }, { status: 400 });
+        }
+        console.error("Uploading failed : ", error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
