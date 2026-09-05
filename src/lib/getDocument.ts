@@ -1,7 +1,11 @@
 import { prisma } from "./prisma";
+import { auth } from "@/auth";
 
-
-export const DEV_USER_ID = "dev-user-id";
+export async function requireUserId(): Promise<string> {
+    const session = await auth();
+    if (!session?.user?.id) throw new Response("Unauthorized", { status: 401 });
+    return session.user.id;
+}
 
 export async function getDocumentForUser(
     documentId: string,

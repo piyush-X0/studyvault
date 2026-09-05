@@ -1,4 +1,5 @@
-import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
+import { auth } from "@/auth";
+import { getDocumentForUser } from "@/lib/getDocument";
 import { runPipeline } from "@/lib/pipeline";
 import { prisma } from "@/lib/prisma";
 import { BUCKET_NAME, r2Client } from "@/lib/r2";
@@ -10,7 +11,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     try {
         const { id } = await params;
 
-        const documents = await getDocumentForUser(id, DEV_USER_ID, {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const documents = await getDocumentForUser(id, session.user.id, {
             id: true, uploadedStatus: true, r2Key: true
         });
         if (!documents) {

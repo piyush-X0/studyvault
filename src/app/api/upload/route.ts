@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { parseJsonBody } from "@/lib/validation";
 import { uploadBodySchema } from "@/lib/schemas/upload";
+import { auth } from "@/auth";
 
 const MAX_FILE_SIZE = 3 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
@@ -15,12 +16,17 @@ const ALLOWED_TYPES = new Set([
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 ]);
 export async function POST(req: NextRequest) {
-    const DEV_USER_ID = "dev-user-id";//later will replace with session.id after next-auth
+
+    const session = await auth();
+    if (!session?.user?.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     try {
         const raw = await req.json();
-        const { filename, contentType, size } = parseJsonBody(raw, uploadBodySchema);
+        const { fileName, contentType, size } = parseJsonBody(raw, uploadBodySchema);
 
-        if (!filename || !contentType || !size) {
+        if (!fileName || !contentType || !size) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 })
         }
         if (!ALLOWED_TYPES.has(contentType)) {
@@ -29,7 +35,7 @@ export async function POST(req: NextRequest) {
         if (size > MAX_FILE_SIZE) {
             return NextResponse.json({ error: "File too large. Maximum size is 3MB" }, { status: 400 });
         }
-        const r2Key = `${DEV_USER_ID}/${randomUUID()}-${filename}`
+        const r2Key = `${session.user.id}/${randomUUID()}-${fileName}`
         const command = new PutObjectCommand({
             Bucket: BUCKET_NAME,
             Key: r2Key,
@@ -40,8 +46,8 @@ export async function POST(req: NextRequest) {
 
         const document = await prisma.document.create({
             data: {
-                userId: DEV_USER_ID,
-                filename,
+                userId: session.user.id,
+                fileName,
                 r2Key,
                 size,
                 mimetype: contentType

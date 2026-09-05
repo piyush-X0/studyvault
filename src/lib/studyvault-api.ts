@@ -99,7 +99,7 @@ export async function uploadDocument(file: File): Promise<string> {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            filename: file.name,
+            fileName: file.name,
             contentType: file.type,
             size: file.size,
         }),

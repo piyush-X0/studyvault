@@ -27,10 +27,20 @@ enum EmbeddingStatus {
   FAILED
 }
 
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  image     String?
+  createdAt DateTime   @default(now())
+  document  Document[]
+}
+
 model Document {
   id              String           @id @default(cuid())
   userId          String
-  filename        String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName        String
   r2Key           String           @unique
   size            Int
   mimetype        String

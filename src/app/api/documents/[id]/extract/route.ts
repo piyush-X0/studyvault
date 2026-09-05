@@ -1,14 +1,20 @@
 import { extractText } from "@/lib/extract";
-import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
+import { getDocumentForUser } from "@/lib/getDocument";
 import { getFileBuffer } from "@/lib/getfilebuffer";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
-        const document = await getDocumentForUser(id, DEV_USER_ID, {
+
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const document = await getDocumentForUser(id, session.user.id, {
             id: true, mimetype: true, r2Key: true,
             uploadedStatus: true, extractedStatus: true
         });

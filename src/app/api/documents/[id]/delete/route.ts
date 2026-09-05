@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { r2Client, BUCKET_NAME } from "@/lib/r2";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
-import { getDocumentForUser, DEV_USER_ID } from "@/lib/getDocument";
+import { getDocumentForUser } from "@/lib/getDocument";
+import { auth } from "@/auth";
 
 export async function DELETE(
     req: NextRequest,
@@ -11,7 +12,11 @@ export async function DELETE(
     try {
         const { id } = await params
 
-        const document = await getDocumentForUser(id, DEV_USER_ID, {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const document = await getDocumentForUser(id, session.user.id, {
             id: true, r2Key: true
         })
 

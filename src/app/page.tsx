@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
+
 import { ProjectSidebar } from "@/components/chat/ProjectSidebar";
 import { ChatTranscript } from "@/components/chat/ChatTranscript";
 import { ChatComposer } from "@/components/chat/ChatComposer";
@@ -18,7 +20,12 @@ import {
   type UploadStage,
 } from "@/lib/studyvault-api";
 
+import { signIn } from "next-auth/react";
+
 export default function LexiChatPage() {
+  const { data: session, status } = useSession();
+
+
   const [documents, setDocuments] = useState<StudyDocument[]>([]);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -34,6 +41,7 @@ export default function LexiChatPage() {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const thinkingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+
   const refreshDocuments = useCallback(async () => {
     try {
       setDocuments(await fetchDocuments());
@@ -43,12 +51,14 @@ export default function LexiChatPage() {
   }, []);
 
   useEffect(() => {
-    refreshDocuments();
+    if (status !== "authenticated") return;
+
+    void Promise.resolve().then(refreshDocuments);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
       thinkingTimersRef.current.forEach(clearTimeout);
     };
-  }, [refreshDocuments]);
+  }, [refreshDocuments, status]);
 
   function showUploadError(message: string) {
     setUploadError(message);
@@ -242,6 +252,27 @@ export default function LexiChatPage() {
     setUploadError(null);
   }
 
+
+  if (status === "loading") {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+
+  if (!session) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4">
+        <h1 className="font-display text-3xl text-foreground">LexiChat</h1>
+        <p className="text-sm text-muted-foreground">
+          Sign in to chat with your documents
+        </p>
+        <button
+          onClick={() => signIn("google", { callbackUrl: "/" })}
+          className="rounded bg-blue-600 px-4 py-2 text-white"
+        >
+          Sign in with Google
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="flex h-screen flex-col bg-background">
       <header className="shrink-0 px-6 pt-5 pb-3">

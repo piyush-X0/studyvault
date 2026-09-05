@@ -1,28 +1,33 @@
-import { DEV_USER_ID, getDocumentForUser } from "@/lib/getDocument";
+import { getDocumentForUser } from "@/lib/getDocument";
 import { prisma } from "@/lib/prisma";
 import { messageBodyScehma } from "@/lib/schemas/messages";
 import { parseJsonBody } from "@/lib/validation";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 
 //preserve current messages
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    try {
 
+    const session = await auth();
+    if (!session?.user?.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    try {
         const { id } = await params;
 
         const raw = await req.json();
-        const { role, text, filename } = parseJsonBody(raw, messageBodyScehma);
+        const { role, text, fileName } = parseJsonBody(raw, messageBodyScehma);
 
         if (!role || !text) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
         }
-        const document = await getDocumentForUser(id, DEV_USER_ID, { id: true });
+        const document = await getDocumentForUser(id, session.user.id, { id: true });
         if (!document) {
             return NextResponse.json({ error: "Not found" }, { status: 404 });
         }
         const message = await prisma.messages.create({
-            data: { documentId: id, role, text, filename }
+            data: { documentId: id, role, text, fileName }
         });
 
         return NextResponse.json({ message });
@@ -40,7 +45,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     try {
 
         const { id } = await params;
-        const document = await getDocumentForUser(id, DEV_USER_ID, { id: true });
+
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const document = await getDocumentForUser(id, session.user.id, { id: true });
 
         if (!document) {
             return NextResponse.json({ error: "Not Found " }, { status: 404 });
@@ -49,7 +59,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const messages = await prisma.messages.findMany({
             where: { documentId: id },
             orderBy: { createdAt: "asc" },
-            select: { id: true, role: true, text: true, filename: true, createdAt: true }
+            select: { id: true, role: true, text: true, fileName: true, createdAt: true }
         });
 
         return NextResponse.json({ messages });
