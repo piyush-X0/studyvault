@@ -30,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const safeFileName = encodeURIComponent(documents.fileName);
 
         const contentDisposition = mode === "download" ?
-            `attachment; filename="${safeFileName}"` : `inline; filename="${safeFileName}"`
+            `attachment; fileName="${safeFileName}"` : `inline; fileName="${safeFileName}"`
 
         const command = new GetObjectCommand({
             Bucket: BUCKET_NAME,

@@ -42,7 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         });
 
         runPipeline(id).catch((error) => {
-            console.error("Pipeline failed: ", error)
+            console.error(`[pipeline] failed for document ${id}:`, error);
         });
         return NextResponse.json({
             status: "UPLOADED", message: "Pipeline Started"

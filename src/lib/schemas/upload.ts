@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const uploadBodySchema = z.object({
-    fileName: z.string().min(1, "filename is required").max(200, "filename too long")
+    fileName: z.string().min(1, "fileName is required").max(200, "fileName too long")
         .refine((name) => !name.includes("/") && !name.includes("\\") && !name.includes(".."),
             "Invalid Username"),
     contentType: z.enum([

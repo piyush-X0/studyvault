@@ -1,56 +1,43 @@
 import { auth, signOut } from "@/auth";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export async function Header() {
     const session = await auth();
 
     return (
-        <header className="flex items-center justify-between border-b border-border px-6 py-3 shrink-0">
-            <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold tracking-tight">
-                    StudyVault
-                </span>
-            </div>
+        <header className="flex h-14 items-center justify-between border-b border-neutral-800 bg-neutral-950 px-6">
+            <Link href="/" className="font-display text-xl text-neutral-100">
+                Datafolio
+            </Link>
 
-            <div className="flex items-center gap-4">
-                {session?.user ? (
-                    <>
-                        <div className="flex items-center gap-3">
-                            {session.user.image && (
-                                <img
-                                    src={session.user.image}
-                                    alt="Profile"
-                                    className="h-8 w-8 rounded-full object-cover"
-                                />
-                            )}
-                            <div className="hidden text-sm sm:block">
-                                <p className="font-medium">{session.user.name}</p>
-                                <p className="text-muted-foreground text-xs">
-                                    {session.user.email}
-                                </p>
-                            </div>
-                        </div>
+            {session?.user?.id ? (
+                <div className="flex items-center gap-3">
+                    <span className="hidden text-sm text-neutral-400 sm:block">
+                        {session.user.email}
+                    </span>
 
-                        <form
-                            action={async () => {
-                                "use server";
-                                await signOut({ redirectTo: "/" });
-                            }}
-                        >
-                            <Button type="submit" variant="outline" size="sm">
-                                Sign out
-                            </Button>
-                        </form>
-                    </>
-                ) : (
-                    <a
-                        href="/api/auth/signin"
-                        className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                    <form
+                        action={async () => {
+                            "use server";
+                            await signOut({ redirectTo: "/" });
+                        }}
                     >
-                        Sign in
-                    </a>
-                )}
-            </div>
+                        <button
+                            type="submit"
+                            className="text-sm text-neutral-400 transition-colors hover:text-neutral-100"
+                        >
+                            Sign out
+                        </button>
+                    </form>
+                </div>
+            ) : (
+                <Link
+                    href="/signin"
+                    className="text-sm text-neutral-300 transition-colors hover:text-white"
+                >
+                    Sign in
+                </Link>
+            )}
         </header>
     );
 }

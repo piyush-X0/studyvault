@@ -14,7 +14,7 @@ export type DocStatus = "PENDING" | "EMBEDDED" | "FAILED" | string;
 
 export interface StudyDocument {
     id: string;
-    filename: string;
+    fileName: string;
     size: number;
     mimetype: string;
     createdAt: string;
@@ -59,7 +59,16 @@ export function formatDate(iso: string) {
 
 export async function fetchDocuments(): Promise<StudyDocument[]> {
     const res = await fetch("/api/documents");
-    if (!res.ok) throw new Error("failed to fetch documents");
+
+    if (!res.ok) {
+        const data = await res.json().catch(() => null);
+
+        throw new Error(
+            data?.error ??
+            `Failed to fetch documents (HTTP ${res.status})`,
+        );
+    }
+
     const data = await res.json();
     return data.documents ?? [];
 }
@@ -132,11 +141,24 @@ export async function streamAnswer(
 ): Promise<string> {
     const res = await fetch(`/api/documents/${docId}/query`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+        },
         body: JSON.stringify({ question }),
     });
 
-    if (!res.body) throw new Error("No stream");
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+
+        throw new Error(
+            errorData?.error ??
+            `Could not generate an answer (HTTP ${res.status}).`,
+        );
+    }
+
+    if (!res.body) {
+        throw new Error("The server did not return an answer stream.");
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -144,10 +166,21 @@ export async function streamAnswer(
 
     while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+
+        if (done) {
+            break;
+        }
+
         const chunk = decoder.decode(value, { stream: true });
         full += chunk;
         onChunk(chunk);
+    }
+
+    const finalChunk = decoder.decode();
+
+    if (finalChunk) {
+        full += finalChunk;
+        onChunk(finalChunk);
     }
 
     return full;
