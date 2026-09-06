@@ -35,6 +35,7 @@ export function DataFolioChat() {
     const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const thinkingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+
     const refreshDocuments = useCallback(async () => {
         try {
             const documents = await fetchDocuments();

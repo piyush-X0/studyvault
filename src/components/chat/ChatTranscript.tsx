@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { FileText } from "lucide-react";
-import type { ChatMessage } from "@/lib/chat-data";
+import type { ChatMessage } from "@/lib/studyvault-api";
 
 function renderInline(text: string) {
     return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
