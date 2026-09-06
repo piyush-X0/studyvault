@@ -32,7 +32,7 @@ export interface ChatMessage {
 
 export type UploadStage = "idle" | "uploading" | "processing" | "ready" | "failed";
 
-export const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 
 export const ALLOWED_MIME = [
     "application/pdf",

@@ -108,7 +108,7 @@ export function DataFolioChat() {
         setUploadError(null);
 
         if (file.size > MAX_UPLOAD_BYTES) {
-            showUploadError("File too large. Maximum size is 3MB.");
+            showUploadError("File too large. Maximum size is 2MB.");
             return;
         }
         if (!ALLOWED_MIME.includes(file.type)) {

@@ -10,7 +10,7 @@ export const uploadBodySchema = z.object({
         "text/markdown",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ]),
-    size: z.number().int().positive("Size must be positive ").max(3 * 1024 * 1024, "File too large, Maximum size is 3MB")
+    size: z.number().int().positive("Size must be positive ").max(2 * 1024 * 1024, "File too large, Maximum size is 2MB")
 });
 
 export type UploadBody = z.infer<typeof uploadBodySchema>;
