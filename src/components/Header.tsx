@@ -6,7 +6,7 @@ export async function Header() {
 
     return (
         <header className="flex h-14 items-center justify-between border-b border-neutral-800 bg-neutral-950 px-6">
-            <Link href="/" className="font-display text-xl text-neutral-100">
+            <Link href="/" className="font-display text-2xl tracking-wider text-neutral-100">
                 Datafolio
             </Link>
 

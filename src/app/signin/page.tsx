@@ -60,7 +60,7 @@ export default async function SignInPage() {
                 </form>
 
                 <p className="mt-6 text-center font-mono text-[11px] text-neutral-600">
-                    Encrypted session · 7-day expiry
+                    Secure Google sign-in · 7-day session
                 </p>
             </div>
         </main>
