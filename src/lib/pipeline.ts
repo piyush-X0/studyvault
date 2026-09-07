@@ -7,7 +7,7 @@ import { prisma } from "./prisma";
 import { BUCKET_NAME, r2Client } from "./r2";
 import { timeStage } from "./utils";
 
-const MAX_EXTRACTED_CHARS = 50_000;
+const MAX_EXTRACTED_CHARS = 900_000;
 const FAILED_DOCUMENT_CLEANUP_DELAY_MS = 30_000;
 
 function getErrorMessage(error: unknown): string {
@@ -40,6 +40,7 @@ function isTransientError(error: unknown): boolean {
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
 
 async function withPipelineRetry<T>(
     fn: () => Promise<T>,

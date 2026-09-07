@@ -8,7 +8,7 @@ import { parseJsonBody } from "@/lib/validation";
 import { uploadBodySchema } from "@/lib/schemas/upload";
 import { auth } from "@/auth";
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024;
+const MAX_FILE_SIZE = 1 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
     "application/pdf",
     "text/plain",
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "UnSupported file tye" }, { status: 400 });
         }
         if (size > MAX_FILE_SIZE) {
-            return NextResponse.json({ error: "File too large. Maximum size is 2MB" }, { status: 400 });
+            return NextResponse.json({ error: "File too large. Maximum size is 1MB" }, { status: 400 });
         }
         const r2Key = `${session.user.id}/${randomUUID()}-${fileName}`
         const command = new PutObjectCommand({
