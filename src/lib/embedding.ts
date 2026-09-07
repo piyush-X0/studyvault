@@ -5,10 +5,10 @@ const genAI = new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY!,
 });
 
-const EMBEDDING_MODEL = "gemini-embedding-2";
+const EMBEDDING_MODEL = "gemini-embedding-001";
 const OUTPUT_DIMENSIONS = 1536;
 
-const BATCH_SIZE = 80;
+const BATCH_SIZE = 5;
 const BATCH_DELAY_MS = 1_000;
 
 const MAX_RETRIES = 5;

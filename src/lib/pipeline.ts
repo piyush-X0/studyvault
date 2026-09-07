@@ -7,8 +7,15 @@ import { prisma } from "./prisma";
 import { BUCKET_NAME, r2Client } from "./r2";
 import { timeStage } from "./utils";
 
-const MAX_EXTRACTED_CHARS = 900_000;
+const MAX_EXTRACTED_CHARS = 50_000;
+const MAX_CHUNKS_PER_DOCUMENT = 20;
 const FAILED_DOCUMENT_CLEANUP_DELAY_MS = 30_000;
+
+type UnembeddedChunk = {
+    id: string;
+    content: string;
+    chunkIndex: number;
+};
 
 function getErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : "Unknown error";
@@ -41,7 +48,6 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-
 async function withPipelineRetry<T>(
     fn: () => Promise<T>,
     stageName: string,
@@ -53,7 +59,7 @@ async function withPipelineRetry<T>(
         } catch (error) {
             if (isQuotaError(error)) {
                 console.error(
-                    `[pipeline] ${stageName} stopped: embedding/API quota is exhausted.`,
+                    `[pipeline] ${stageName} stopped: API quota is exhausted.`,
                     error,
                 );
 
@@ -161,7 +167,7 @@ export async function runPipeline(documentId: string): Promise<void> {
         );
 
         console.log(
-            `[pipeline] extracted ${extractedText.length} characters from document ${documentId}`,
+            `[pipeline] extracted ${extractedText.length.toLocaleString()} characters from document ${documentId}`,
         );
 
         if (extractedText.length > MAX_EXTRACTED_CHARS) {
@@ -193,7 +199,6 @@ export async function runPipeline(documentId: string): Promise<void> {
                 extractionError: message,
             },
         });
-
         void autoCleanup(documentId, document.r2Key);
         throw error;
     }
@@ -214,8 +219,15 @@ export async function runPipeline(documentId: string): Promise<void> {
                 throw new Error("Document produced no valid text chunks.");
             }
 
+            if (chunks.length > MAX_CHUNKS_PER_DOCUMENT) {
+                throw new Error(
+                    `Document produces too many chunks (${chunks.length}). ` +
+                    `Maximum allowed is ${MAX_CHUNKS_PER_DOCUMENT} chunks.`,
+                );
+            }
+
             console.log(
-                `[pipeline] created ${chunks.length} chunk(s) for document ${documentId}`,
+                `[pipeline] creating ${chunks.length} chunk(s) for document ${documentId}`,
             );
 
             await prisma.documentChunks.createMany({
@@ -227,6 +239,13 @@ export async function runPipeline(documentId: string): Promise<void> {
                 })),
             });
         } else {
+            if (existingCount > MAX_CHUNKS_PER_DOCUMENT) {
+                throw new Error(
+                    `Document already has too many chunks (${existingCount}). ` +
+                    `Maximum allowed is ${MAX_CHUNKS_PER_DOCUMENT} chunks.`,
+                );
+            }
+
             console.log(
                 `[pipeline] document ${documentId} already has ${existingCount} chunk(s); skipping chunk creation.`,
             );
@@ -243,7 +262,6 @@ export async function runPipeline(documentId: string): Promise<void> {
                 extractionError: message,
             },
         });
-
         void autoCleanup(documentId, document.r2Key);
         throw error;
     }
@@ -261,22 +279,36 @@ export async function runPipeline(documentId: string): Promise<void> {
     });
 
     try {
-        const chunks = await prisma.documentChunks.findMany({
-            where: {
-                documentId,
-            },
-            select: {
-                id: true,
-                content: true,
-            },
-            orderBy: {
-                chunkIndex: "asc",
-            },
-        });
+
+        const chunks = await prisma.$queryRaw<UnembeddedChunk[]>`
+      SELECT id, content, "chunkIndex"
+      FROM "DocumentChunks"
+      WHERE "documentId" = ${documentId}
+        AND embedding IS NULL
+      ORDER BY "chunkIndex" ASC
+    `;
 
         if (chunks.length === 0) {
-            throw new Error("No chunks are available for embedding.");
+            await prisma.document.update({
+                where: {
+                    id: documentId,
+                },
+                data: {
+                    embeddingStatus: "EMBEDDED",
+                    embeddingError: null,
+                },
+            });
+
+            console.log(
+                `[pipeline] document ${documentId} has no unembedded chunks and is marked ready.`,
+            );
+
+            return;
         }
+
+        console.log(
+            `[pipeline] generating embeddings for ${chunks.length} unembedded chunk(s) from document ${documentId}`,
+        );
 
         const vectors = await withPipelineRetry(
             () =>
@@ -291,10 +323,6 @@ export async function runPipeline(documentId: string): Promise<void> {
                 `Embedding count mismatch: expected ${chunks.length} vector(s), received ${vectors.length}.`,
             );
         }
-
-        console.log(
-            `[pipeline] generated ${vectors.length} embedding vector(s) for document ${documentId}`,
-        );
 
         const ids = chunks.map((chunk) => chunk.id);
         const vectorLiterals = vectors.map((vector) => `[${vector.join(",")}]`);
@@ -338,8 +366,11 @@ export async function runPipeline(documentId: string): Promise<void> {
                 embeddingError: message,
             },
         });
-
-        void autoCleanup(documentId, document.r2Key);
+        console.error(
+            `[pipeline] embedding failed for document ${documentId}; ` +
+            `keeping document, extracted text, chunks, and R2 file for a future retry.`,
+            error,
+        );
         throw error;
     }
 }
