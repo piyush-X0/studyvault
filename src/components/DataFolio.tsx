@@ -87,6 +87,7 @@ export function DataFolioChat() {
                     stopPolling();
                     setUploadStage("failed");
                     setPendingFile(null);
+                    setUploadedDocId(null)
                     showUploadError(getProcessingErrorMessage(doc));
                     return;
                 }
@@ -193,66 +194,6 @@ export function DataFolioChat() {
         setThinkingLabel("thinking...");
     }
 
-    async function handleSubmit() {
-        const question = input.trim();
-        if (!question || asking) return;
-        if (uploadStage === "uploading" || uploadStage === "processing") return;
-
-        if (!activeDocId) {
-            showUploadError("Upload a document first, then ask your question.");
-            return;
-        }
-
-        const docId = activeDocId;
-        const fileName = pendingFile?.name;
-        const assistantId = `a-${Date.now()}`;
-
-        setMessages((prev) => [
-            ...prev,
-            { id: `u-${Date.now()}`, role: "user", text: question, ...(fileName ? { fileName } : {}) },
-            { id: assistantId, role: "assistant", text: "" },
-        ]);
-        setInput("");
-        setPendingFile(null);
-        setAsking(true);
-        startThinkingTimers();
-
-        await persistMessage(docId, { role: "user", text: question, ...(fileName ? { fileName } : {}) });
-
-        try {
-            let first = true;
-            const fullAnswer = await streamAnswer(docId, question, (chunk) => {
-                if (first) {
-                    clearThinkingTimers();
-                    first = false;
-                }
-                setMessages((prev) =>
-                    prev.map((m) => (m.id === assistantId ? { ...m, text: m.text + chunk } : m)),
-                );
-            });
-
-            await persistMessage(docId, { role: "assistant", text: fullAnswer });
-        } catch (error) {
-            console.error("Answer request failed:", error);
-
-            const friendlyMessage = getChatErrorMessage(error);
-
-            setMessages((previous) =>
-                previous.map((message) =>
-                    message.id === assistantId
-                        ? {
-                            ...message,
-                            text: friendlyMessage,
-                        }
-                        : message,
-                ),
-            );
-        } finally {
-            clearThinkingTimers();
-            setAsking(false);
-        }
-    }
-
     function getChatErrorMessage(error: unknown): string {
         const message = error instanceof Error ? error.message : "";
         const normalizedMessage = message.toLowerCase();
@@ -339,6 +280,100 @@ export function DataFolioChat() {
         }
         return "Document processing failed. Please try a different file.";
     }
+
+    async function handleSubmit() {
+        const question = input.trim();
+
+        if (!question || asking) {
+            return;
+        }
+
+        if (uploadStage === "uploading" || uploadStage === "processing") {
+            return;
+        }
+
+        if (!activeDocId) {
+            showUploadError("Upload a document first, then ask your question.");
+            return;
+        }
+
+        const docId = activeDocId;
+        const fileName = pendingFile?.name;
+        const now = Date.now();
+        const assistantId = `a-${now}`;
+
+        setMessages((previous) => [
+            ...previous,
+            {
+                id: `u-${now}`,
+                role: "user",
+                text: question,
+                ...(fileName ? { fileName } : {}),
+            },
+            {
+                id: assistantId,
+                role: "assistant",
+                text: "",
+            },
+        ]);
+
+        setInput("");
+        setPendingFile(null);
+        setAsking(true);
+        startThinkingTimers();
+
+        try {
+            await persistMessage(docId, {
+                role: "user",
+                text: question,
+                ...(fileName ? { fileName } : {}),
+            });
+
+            let firstChunk = true;
+
+            const fullAnswer = await streamAnswer(docId, question, (chunk) => {
+                if (firstChunk) {
+                    clearThinkingTimers();
+                    firstChunk = false;
+                }
+
+                setMessages((previous) =>
+                    previous.map((message) =>
+                        message.id === assistantId
+                            ? {
+                                ...message,
+                                text: message.text + chunk,
+                            }
+                            : message,
+                    ),
+                );
+            });
+
+            await persistMessage(docId, {
+                role: "assistant",
+                text: fullAnswer,
+            });
+        } catch (error) {
+            console.error("Answer request failed:", error);
+
+            const friendlyMessage = getChatErrorMessage(error);
+
+            setMessages((previous) =>
+                previous.map((message) =>
+                    message.id === assistantId
+                        ? {
+                            ...message,
+                            text: friendlyMessage,
+                        }
+                        : message,
+                ),
+            );
+        } finally {
+            clearThinkingTimers();
+            setAsking(false);
+        }
+    }
+
     async function handleSelect(id: string) {
         setActiveDocId(id);
         setMessages([]);
