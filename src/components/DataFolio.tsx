@@ -87,7 +87,8 @@ export function DataFolioChat() {
                     stopPolling();
                     setUploadStage("failed");
                     setPendingFile(null);
-                    showUploadError("Processing failed. Please try a smaller or different file.");
+                    showUploadError(getProcessingErrorMessage(doc));
+                    return;
                 }
             } catch {
                 stopPolling();
@@ -97,37 +98,71 @@ export function DataFolioChat() {
 
         setTimeout(stopPolling, 120_000);
     }
+    const MAX_EXTRACTED_CHARS = 50_000;
+
+    async function hasTooMuchPlainText(file: File): Promise<boolean> {
+        const plainTextTypes = ["text/plain", "text/markdown"];
+
+        if (!plainTextTypes.includes(file.type)) {
+            return false;
+        }
+
+        const text = await file.text();
+
+        return text.length > MAX_EXTRACTED_CHARS;
+    }
 
     async function handlePickFile(file: File) {
         setUploadError(null);
 
         if (file.size > MAX_UPLOAD_BYTES) {
-            showUploadError("File too large. Maximum size is 1MB.");
+            showUploadError("File too large. Maximum size is 1 MB.");
             return;
         }
         if (!ALLOWED_MIME.includes(file.type)) {
-            showUploadError("Unsupported file type. Use PDF, DOCX, or TXT.");
+            showUploadError("Unsupported file type. Use PDF, DOCX, TXT, or Markdown.");
             return;
         }
+        try {
+            if (await hasTooMuchPlainText(file)) {
+                showUploadError(
+                    "This text file exceeds the 50,000-character demo limit. " +
+                    "Upload a shorter section instead.",
+                );
+                return;
+            }
+        } catch (error) {
+            console.error("Could not read text file before upload:", error);
 
+            showUploadError(
+                "Could not read this text file. Please try another file.",
+            );
+            return;
+        }
         setPendingFile(file);
         setUploadStage("uploading");
 
         try {
             const documentId = await uploadDocument(file);
+
             setUploadedDocId(documentId);
             setUploadStage("processing");
-            refreshDocuments();
+
+            void refreshDocuments();
             startPolling(documentId);
         } catch (error) {
             stopPolling();
+            setPendingFile(null);
+            setUploadedDocId(null);
             setUploadStage("failed");
+
             showUploadError(
-                error instanceof Error ? error.message : "Upload failed. Please try again.",
+                error instanceof Error
+                    ? error.message
+                    : "Upload failed. Please try again.",
             );
         }
     }
-
     async function handleClearAttachment() {
         if (uploadedDocId && uploadStage === "ready") {
             try {
@@ -198,16 +233,18 @@ export function DataFolioChat() {
 
             await persistMessage(docId, { role: "assistant", text: fullAnswer });
         } catch (error) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : "Unable to answer this question right now.";
+            console.error("Answer request failed:", error);
 
-            setMessages((prev) =>
-                prev.map((m) =>
-                    m.id === assistantId
-                        ? { ...m, text: getChatErrorMessage(error) }
-                        : m,
+            const friendlyMessage = getChatErrorMessage(error);
+
+            setMessages((previous) =>
+                previous.map((message) =>
+                    message.id === assistantId
+                        ? {
+                            ...message,
+                            text: friendlyMessage,
+                        }
+                        : message,
                 ),
             );
         } finally {
@@ -216,22 +253,91 @@ export function DataFolioChat() {
         }
     }
 
-    function getChatErrorMessage(error: unknown) {
+    function getChatErrorMessage(error: unknown): string {
         const message = error instanceof Error ? error.message : "";
+        const normalizedMessage = message.toLowerCase();
 
-        if (message === "Document not found") {
-            return "This document is no longer available. It may have failed during processing.";
+        if (
+            normalizedMessage.includes("document not found") ||
+            normalizedMessage.includes("no longer available")
+        ) {
+            return (
+                "This document is no longer available. " +
+                "It may have failed during processing or been removed."
+            );
         }
 
-        if (message === "Document is not ready for query yet") {
-            return "This document is still being processed. Please wait a moment and try again.";
+        if (
+            normalizedMessage.includes("document is not ready for query yet") ||
+            normalizedMessage.includes("not ready")
+        ) {
+            return (
+                "This document is still processing. " +
+                "Please wait a moment and try again."
+            );
         }
 
-        if (message.includes("Unauthorized")) {
+        if (
+            normalizedMessage.includes("unauthorized") ||
+            normalizedMessage.includes("401")
+        ) {
             return "Your session has expired. Please sign in again.";
         }
 
+        if (
+            normalizedMessage.includes("503") ||
+            normalizedMessage.includes("unavailable") ||
+            normalizedMessage.includes("high demand")
+        ) {
+            return (
+                "The AI service is experiencing high demand. " +
+                "Please try again in a moment."
+            );
+        }
+
+        if (
+            normalizedMessage.includes("429") ||
+            normalizedMessage.includes("resource_exhausted") ||
+            normalizedMessage.includes("quota")
+        ) {
+            return (
+                "The AI service is temporarily unavailable due to usage limits. " +
+                "Please try again later."
+            );
+        }
+
+        if (
+            normalizedMessage.includes("timeout") ||
+            normalizedMessage.includes("etimedout") ||
+            normalizedMessage.includes("fetch failed") ||
+            normalizedMessage.includes("network")
+        ) {
+            return "The request timed out or the network connection failed. Please try again.";
+        }
+
         return "Unable to generate an answer right now. Please try again.";
+    }
+    function getProcessingErrorMessage(document: StudyDocument): string {
+        const extractionError = document.extractionError ?? "";
+        const embeddingError = document.embeddingError ?? "";
+
+        if (extractionError.includes("too large after text extraction")) {
+            return (
+                "This document contains too much text for the demo limit. " +
+                "Try uploading a shorter chapter, section, or notes."
+            );
+        }
+        if (
+            embeddingError.includes("RESOURCE_EXHAUSTED") ||
+            embeddingError.includes("429") ||
+            embeddingError.toLowerCase().includes("quota")
+        ) {
+            return (
+                "AI processing is temporarily unavailable due to usage limits. " +
+                "Please try again later."
+            );
+        }
+        return "Document processing failed. Please try a different file.";
     }
     async function handleSelect(id: string) {
         setActiveDocId(id);
@@ -269,8 +375,6 @@ export function DataFolioChat() {
         setUploadStage("idle");
         setUploadError(null);
     }
-
-
 
     return (
         <div className="flex h-screen flex-col bg-background">

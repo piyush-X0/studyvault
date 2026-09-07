@@ -1,4 +1,5 @@
 import { streamAnswer } from "@/lib/answers";
+import { getAiErrorMessage } from "@/lib/ai-errors";
 import { generateEmbeddings } from "@/lib/embedding";
 import { getDocumentForUser } from "@/lib/getDocument";
 import { queryBodySchema } from "@/lib/schemas/query";
@@ -34,17 +35,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         const relevantChunks = await findRelevantChunks(id, questionvector, 5);
 
         const encoder = new TextEncoder();
+
         const stream = new ReadableStream({
             async start(controller) {
-                await streamAnswer(
-                    question,
-                    relevantChunks.map((c) => c.content),
-                    (text) => {
-                        controller.enqueue(encoder.encode(text));
-                    }
-                );
-                controller.close();
-            }
+                try {
+                    await streamAnswer(
+                        question,
+                        relevantChunks.map((chunk) => chunk.content),
+                        (text) => {
+                            controller.enqueue(encoder.encode(text));
+                        },
+                    );
+                } catch (error) {
+                    console.error("AI answer generation failed:", error);
+
+                    const safeMessage = getAiErrorMessage(error);
+
+                    controller.enqueue(encoder.encode(safeMessage));
+                } finally {
+                    controller.close();
+                }
+            },
         });
         return new Response(stream, {
             headers: {

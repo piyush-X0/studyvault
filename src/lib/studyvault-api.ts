@@ -21,6 +21,8 @@ export interface StudyDocument {
     uploadedStatus: DocStatus;
     extractedStatus: DocStatus;
     embeddingStatus: DocStatus;
+    extractionError?: string | null,
+    embeddingError?: string | null
 }
 
 export interface ChatMessage {
@@ -102,7 +104,6 @@ export async function deleteDocument(docId: string) {
     await fetch(`/api/documents/${docId}/delete`, { method: "DELETE" });
 }
 
-/** Requests a presigned URL, PUTs the file, then confirms. Returns documentId. */
 export async function uploadDocument(file: File): Promise<string> {
     const res = await fetch("/api/upload", {
         method: "POST",
@@ -133,7 +134,6 @@ export async function uploadDocument(file: File): Promise<string> {
     return documentId as string;
 }
 
-/** Streams the answer from the RAG query route, invoking onChunk per token batch. */
 export async function streamAnswer(
     docId: string,
     question: string,
@@ -148,11 +148,11 @@ export async function streamAnswer(
     });
 
     if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
+        const data = await res.json().catch(() => null);
 
         throw new Error(
-            errorData?.error ??
-            `Could not generate an answer (HTTP ${res.status}).`,
+            data?.error ??
+            `Unable to generate an answer (HTTP ${res.status}).`,
         );
     }
 
@@ -162,7 +162,7 @@ export async function streamAnswer(
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-    let full = "";
+    let fullAnswer = "";
 
     while (true) {
         const { done, value } = await reader.read();
@@ -171,17 +171,20 @@ export async function streamAnswer(
             break;
         }
 
-        const chunk = decoder.decode(value, { stream: true });
-        full += chunk;
+        const chunk = decoder.decode(value, {
+            stream: true,
+        });
+
+        fullAnswer += chunk;
         onChunk(chunk);
     }
 
     const finalChunk = decoder.decode();
 
     if (finalChunk) {
-        full += finalChunk;
+        fullAnswer += finalChunk;
         onChunk(finalChunk);
     }
 
-    return full;
+    return fullAnswer;
 }

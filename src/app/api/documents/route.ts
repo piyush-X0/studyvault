@@ -31,6 +31,9 @@ export async function GET() {
             uploadedStatus: true,
             extractedStatus: true,
             embeddingStatus: true,
+
+            extractionError: true,
+            embeddingError: true
         },
     });
 

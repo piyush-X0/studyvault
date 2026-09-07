@@ -49,13 +49,29 @@ export function ChatComposer({
                 </div>
             )}
 
-            {uploadStage !== "idle" && uploadStage !== "ready" && (
+            {uploadStage === "uploading" && (
                 <p className="mb-2 text-[11px] text-muted-foreground">
-                    {uploadStage === "uploading" ? "Uploading document..." : "Processing document..."}
+                    Uploading document...
                 </p>
             )}
 
-            {uploadError && <p className="mb-2 text-[11px] text-red-400">{uploadError}</p>}
+            {uploadStage === "processing" && (
+                <p className="mb-2 text-[11px] text-muted-foreground">
+                    Processing document...
+                </p>
+            )}
+
+            {uploadStage === "failed" && !uploadError && (
+                <p className="mb-2 text-[11px] text-red-400">
+                    Document processing failed.
+                </p>
+            )}
+
+            {uploadError && (
+                <p className="mb-2 text-[11px] text-red-400">
+                    {uploadError}
+                </p>
+            )}
 
             <textarea
                 rows={1}
@@ -82,20 +98,30 @@ export function ChatComposer({
                         type="file"
                         accept=".pdf,.doc,.docx,.txt,.md"
                         className="hidden"
-                        onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) onPickFile?.(file);
-                            e.target.value = "";
+                        onChange={(event) => {
+                            const file = event.target.files?.[0];
+
+                            if (file) {
+                                onPickFile?.(file);
+                            }
+
+                            event.target.value = "";
                         }}
                     />
+
                     <button
                         type="button"
-                        aria-label="Add document"
+                        aria-label="Upload document"
+                        title="Upload a document"
                         onClick={() => fileRef.current?.click()}
                         className="grid size-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-state-hover hover:text-foreground"
                     >
                         <Plus className="size-4" />
                     </button>
+
+                    <span className="hidden text-[9px] text-muted-foreground sm:inline  tracking-wider">
+                        PDF, DOCX, TXT · max <span className="text-red-500"> 1 MB</span> · short documents work best
+                    </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
@@ -115,6 +141,11 @@ export function ChatComposer({
                     </button>
                 </div>
             </div>
+            <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+                Supports PDF, DOCX, TXT, and Markdown up to 1 MB. Very text-heavy documents
+                may exceed the demo processing <span className="text-blue-500"> limit—upload</span> a chapter, section, or short
+                notes instead.
+            </p>
         </div>
     );
 }
