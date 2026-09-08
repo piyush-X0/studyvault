@@ -17,7 +17,32 @@
     display: none;
   }
 }
-
+@utility bg-surface-subtle\/90 {
+  background-color: rgb(18 19 26 / 0.9);
+}
+@utility border-surface-border {
+  --tw-border-opacity: 1;
+  border-color: rgb(37 39 56 / var(--tw-border-opacity, 1));
+}
+@utility border-t {
+  border-top-width: 1px;
+}
+@utility bg-surface-card {
+  --tw-bg-opacity: 1;
+  background-color: rgb(22 23 34 / var(--tw-bg-opacity, 1));
+}
+@utility from-emerald-500 {
+  --tw-gradient-from: #10b981 var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(16 185 129 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+@utility bg-gradient-to-r {
+  background-image: linear-gradient(to right, var(--tw-gradient-stops));
+}
+@utility text-accent-emerald {
+  --tw-text-opacity: 1;
+  color: rgb(16 185 129 / var(--tw-text-opacity, 1));
+}
 @utility panel-glass {
   background-color: var(--panel);
   backdrop-filter: blur(14px) saturate(130%);
