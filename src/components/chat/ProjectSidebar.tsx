@@ -8,6 +8,7 @@ import {
   Trash2,
   TriangleAlert,
   PenSquare,
+  CloudSync
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -107,7 +108,7 @@ export function ProjectSidebar({
   }, [documents, query]);
 
   return (
-    <aside className="panel-glass flex h-full w-76 shrink-0 flex-col overflow-hidden rounded-2xl">
+    <aside className="panel-glass flex h-full w-76 shrink-0 flex-col overflow-hidden rounded-2xl border-surface-border bg-surface-subtle/90">
       <div className="no-scrollbar flex-1 overflow-y-auto p-3">
         <button
           type="button"
@@ -211,6 +212,20 @@ export function ProjectSidebar({
             </ul>
           </section>
         )}
+      </div>
+      <div className="p-3.5 border-t border-surface-border bg-surface-subtle/90" data-purpose="storge-meter">
+        <div className="flex items-center justify-between text-[11px] text-zinc-400 mb-1.5">
+          <span className="flex items-center gap-1 text-zinc-300"> <CloudSync style={{ width: "15", height: "15", color: "skyblue" }} /> Demo-storage</span>
+          <span className="text-zinc-400 font-medium">3.5 / 10 MB</span>
+        </div>
+        <div className="w-full bg-surface-card h-1.5 rounded-full overflow-hidden border border-surface-border">
+          <div
+            className="h-full rounded-full bg-linear-to-r from-emerald-500 to-teal-400"
+            style={{ width: "36%" }} /></div>
+        <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-1.5 font-mono">
+          <span> 8 files indexed</span>
+          <span className="text-accent-emerald hover:underline cursor-pointer">Manage</span>
+        </div>
       </div>
     </aside>
   );
