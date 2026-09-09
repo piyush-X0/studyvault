@@ -1,18 +1,35 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Plus, Search, Trash2, FileText, CheckCircle2, AlertCircle, Loader2, X } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  FileCode2,
+  FileText,
+  FileType2,
+  Loader2,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface DocumentItem {
   id: string;
-  name?: string;
   fileName?: string;
-  status?: "READY" | "UPLOADING" | "EXTRACTING" | "CHUNKING" | "EMBEDDING" | "FAILED" | string;
-  uploadedStatus?: string;
+  name?: string;
+  mimetype?: string;
+
   size?: number;
+  createdAt?: string;
   uploadedAt?: string;
-  fileUrl?: string;
+
+  uploadedStatus?: string;
+  extractedStatus?: string;
+  embeddingStatus?: string;
+
+  status?: string;
   progress?: number;
 }
 
@@ -29,6 +46,48 @@ interface ProjectSidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
   isLoading?: boolean;
+}
+function getFileIcon(fileName: string, mimetype?: string) {
+  const lowerName = fileName.toLowerCase();
+
+  if (mimetype === "application/pdf" || lowerName.endsWith(".pdf")) {
+    return {
+      Icon: FileText,
+      iconClassName: "text-red-400",
+      containerClassName: "bg-red-500/10 border-red-500/20",
+    };
+  }
+
+  if (
+    mimetype === "text/plain" ||
+    mimetype === "text/markdown" ||
+    lowerName.endsWith(".txt") ||
+    lowerName.endsWith(".md")
+  ) {
+    return {
+      Icon: FileType2,
+      iconClassName: "text-orange-400",
+      containerClassName: "bg-orange-500/10 border-orange-500/20",
+    };
+  }
+
+  if (
+    mimetype ===
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    lowerName.endsWith(".docx")
+  ) {
+    return {
+      Icon: FileCode2,
+      iconClassName: "text-blue-400",
+      containerClassName: "bg-blue-500/10 border-blue-500/20",
+    };
+  }
+
+  return {
+    Icon: FileText,
+    iconClassName: "text-neutral-400",
+    containerClassName: "bg-neutral-500/10 border-neutral-500/20",
+  };
 }
 
 export default function ProjectSidebar({
@@ -115,62 +174,98 @@ export default function ProjectSidebar({
         </p>
       </div>
 
-      {/* SCROLLABLE DOCUMENT LIST ONLY */}
+      {/* DOCUMENT LIST */}
       <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1 space-y-1">
-        {filteredDocs.length === 0 ? (
-          <div className="flex h-44 flex-col items-center justify-center px-4 text-center">
-            <FileText className="h-8 w-8 text-neutral-700 mb-2" />
-            <p className="text-xs text-neutral-500">
-              {query ? "No matching documents" : "No documents uploaded yet"}
-            </p>
-          </div>
-        ) : (
-          filteredDocs.map((doc) => {
-            const isSelected = resolvedSelectedId === doc.id;
-            const docName = doc.name ?? doc.fileName ?? "Untitled document";
-            const docStatus = doc.status ?? doc.uploadedStatus ?? "UPLOADING";
+        {filteredDocs.map((document) => {
+          const isSelected = resolvedSelectedId === document.id;
+          const fileName = document.fileName ?? "Untitled document";
+          const status =
+            document.embeddingStatus ??
+            document.extractedStatus ??
+            document.uploadedStatus ??
+            "PENDING";
 
-            return (
+          const {
+            Icon: FileIcon,
+            iconClassName,
+            containerClassName,
+          } = getFileIcon(fileName, document.mimetype);
+
+          return (
+            <div
+              key={document.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleSelectDocument?.(document.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleSelectDocument?.(document.id);
+                }
+              }}
+              className={[
+                "group relative flex cursor-pointer items-center gap-3 rounded-xl",
+                "border p-2.5 text-xs transition-all duration-200 ease-out",
+                "hover:bg-zinc-800",
+                isSelected
+                  ? "border-neutral-700 bg-[#1C1C1C] text-white shadow-sm"
+                  : "border-transparent text-neutral-400 hover:text-white",
+              ].join(" ")}
+            >
               <div
-                key={doc.id}
-                onClick={() => {
-                  handleSelectDocument(doc.id);
-                  onClose?.();
-                }}
-                className={`group relative flex cursor-pointer items-center justify-between rounded-xl p-2.5 transition-all text-xs ${isSelected
-                  ? "bg-[#1C1C1C] font-medium text-white border border-neutral-700 shadow-sm"
-                  : "text-neutral-400 hover:bg-[#141414] hover:text-neutral-200"
-                  }`}
+                className={[
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
+                  containerClassName,
+                ].join(" ")}
               >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <div className="shrink-0">
-                    {(docStatus === "READY" || docStatus === "EMBEDDED") && (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                    )}
-                    {docStatus === "FAILED" && (
-                      <AlertCircle className="h-3.5 w-3.5 text-rose-400" />
-                    )}
-                    {docStatus !== "READY" && docStatus !== "FAILED" && docStatus !== "EMBEDDED" && (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-neutral-500" />
-                    )}
-                  </div>
-                  <span className="truncate">{docName}</span>
-                </div>
+                <FileIcon className={`h-4 w-4 ${iconClassName}`} />
+              </div>
 
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{fileName}</p>
+
+                <div className="mt-1 flex items-center gap-2 text-[10px] text-neutral-500">
+                  <span>
+                    {status === "EMBEDDED" ? "Ready" : status.toLowerCase()}
+                  </span>
+
+                  {status === "EMBEDDED" && (
+                    <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                  )}
+
+                  {status === "FAILED" && (
+                    <AlertCircle className="h-3 w-3 text-rose-400" />
+                  )}
+
+                  {status !== "EMBEDDED" && status !== "FAILED" && (
+                    <Loader2 className="h-3 w-3 animate-spin text-neutral-500" />
+                  )}
+                </div>
+              </div>
+
+              {handleDeleteDocument && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteDocument(doc.id);
-                  }}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded text-neutral-500 hover:text-rose-400 hover:bg-neutral-800 transition-opacity"
+                  type="button"
+                  aria-label={`Delete ${fileName}`}
                   title="Delete document"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void handleDeleteDocument(document.id);
+                  }}
+                  className={[
+                    "shrink-0 rounded-md p-1.5 text-neutral-500",
+                    "opacity-0 transition-all duration-200 ease-out",
+                    "group-hover:opacity-100 hover:bg-red-500/15 hover:text-red-400",
+                    "focus-visible:opacity-100 focus-visible:outline-none",
+                    "focus-visible:ring-2 focus-visible:ring-red-400/50",
+                  ].join(" ")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
-              </div>
-            );
-          })
-        )}
+              )}
+            </div>
+          );
+        })}
       </div>
     </aside>
   );

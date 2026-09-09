@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
-import { ArrowUp, Plus, X, FileText, Loader2 } from "lucide-react";
+import {
+    ArrowUp,
+    FileCode2,
+    FileText,
+    FileType2,
+    Loader2,
+    Plus,
+    X,
+    type LucideIcon,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type UploadStage = "idle" | "uploading" | "processing" | "ready" | "failed";
@@ -71,8 +80,11 @@ export default function ChatComposer({
 
     const handleSend = () => {
         const trimmed = inputValue.trim();
+        if (uploadInProgress || uploadFailed || isLoading || disabled) {
+            return;
+        }
 
-        if ((!trimmed && !pendingFile && !displayAttachmentName) || isLoading || disabled) {
+        if (!trimmed) {
             return;
         }
 
@@ -82,23 +94,25 @@ export default function ChatComposer({
 
             if (onPickFile) {
                 void onPickFile(file);
-                return;
+            } else {
+                onFileUpload?.(file);
             }
 
-            onFileUpload?.(file);
             return;
         }
 
-        if (trimmed) {
-            if (onSubmit) {
-                onSubmit();
-            } else if (onSend) {
-                onSend(trimmed);
-            }
+        if (!trimmed) {
+            return;
+        }
 
-            if (value === undefined) {
-                setInternalInput("");
-            }
+        if (onSubmit) {
+            onSubmit();
+        } else {
+            onSend?.(trimmed);
+        }
+
+        if (value === undefined) {
+            setInternalInput("");
         }
     };
 
@@ -135,6 +149,89 @@ export default function ChatComposer({
 
     const showAttachment = displayAttachmentName && !uploadStage ? true : !!displayAttachmentName;
 
+
+    const uploadInProgress =
+        uploadStage === "uploading" ||
+        uploadStage === "processing";
+
+    const uploadFailed = uploadStage === "failed";
+    const canSend =
+        Boolean(inputValue.trim()) &&
+        !isLoading &&
+        !disabled &&
+        !uploadInProgress &&
+        !uploadFailed;
+    function getUploadStatusText(
+        uploadStage?: UploadStage,
+    ): string | null {
+        switch (uploadStage) {
+            case "uploading":
+                return "Uploading file...";
+            case "processing":
+                return "Extracting, chunking and embedding...";
+            case "ready":
+                return "Document ready";
+            case "failed":
+                return "Upload failed";
+            default:
+                return null;
+        }
+    }
+    function getUploadAnimation(uploadStage?: UploadStage): string {
+        if (uploadStage === "uploading") {
+            return "animate-pulse bg-blue-500/10";
+        }
+
+        if (uploadStage === "processing") {
+            return "animate-pulse bg-purple-500/10";
+        }
+
+        if (uploadStage === "failed") {
+            return "bg-red-500/10";
+        }
+
+        return "bg-[#1C1C1C]";
+    }
+    function getAttachmentIcon(fileName: string): {
+        Icon: LucideIcon;
+        className: string;
+    } {
+        const lowerName = fileName.toLowerCase();
+
+        if (lowerName.endsWith(".pdf")) {
+            return {
+                Icon: FileText,
+                className: "text-red-400",
+            };
+        }
+
+        if (lowerName.endsWith(".txt") || lowerName.endsWith(".md")) {
+            return {
+                Icon: FileType2,
+                className: "text-orange-400",
+            };
+        }
+
+        if (lowerName.endsWith(".docx")) {
+            return {
+                Icon: FileCode2,
+                className: "text-blue-400",
+            };
+        }
+
+        return {
+            Icon: FileText,
+            className: "text-neutral-400",
+        };
+    }
+    const attachmentIcon = displayAttachmentName
+        ? getAttachmentIcon(displayAttachmentName)
+        : null;
+    const AttachmentIcon = attachmentIcon?.Icon;
+
+    const uploadStatusText = getUploadStatusText(uploadStage);
+    const uploadAnimation = getUploadAnimation(uploadStage);
+
     return (
         <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 pb-4">
             <input
@@ -152,25 +249,59 @@ export default function ChatComposer({
                     }`}
             >
                 <AnimatePresence>
-                    {showAttachment && (
+                    {showAttachment && displayAttachmentName && (
                         <motion.div
-                            initial={{ opacity: 0, y: 5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 5 }}
+                            initial={{ opacity: 0, y: 8, filter: "blur(8px)" }}
+                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                            exit={{ opacity: 0, y: 8, filter: "blur(8px)" }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
                             className="flex items-center gap-2 px-3.5 pt-3 pb-1"
                         >
-                            <div className="flex items-center gap-2 rounded-xl border border-neutral-700 bg-[#1C1C1C] px-3 py-1.5 text-xs text-neutral-200 shadow-sm">
-                                <FileText className="h-4 w-4 text-emerald-400 shrink-0" />
-                                <span className="font-medium truncate max-w-55">{displayAttachmentName}</span>
-                                {pendingFile && (
-                                    <span className="text-[10px] text-neutral-500 font-mono">
-                                        ({formatFileSize(pendingFile.size)})
+                            <div
+                                className={[
+                                    "flex min-w-0 flex-1 items-center gap-2 rounded-xl",
+                                    "border border-neutral-700 px-3 py-1.5 text-xs",
+                                    "text-neutral-200 shadow-sm transition-colors duration-300",
+                                    uploadAnimation,
+                                ].join(" ")}
+                            >
+                                {AttachmentIcon && attachmentIcon && (
+                                    <AttachmentIcon
+                                        className={`h-4 w-4 shrink-0 ${attachmentIcon.className}`}
+                                    />
+                                )}
+
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate font-medium">
+                                        {displayAttachmentName}
+                                    </p>
+
+                                    {uploadStatusText && (
+                                        <p className="mt-0.5 text-[10px] text-neutral-500">
+                                            {uploadStatusText}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {uploadStage === "failed" && uploadError && (
+                                    <span
+                                        className="max-w-45 truncate text-[10px] text-red-400"
+                                        title={uploadError}
+                                    >
+                                        {uploadError}
                                     </span>
                                 )}
+
+                                {uploadStage !== "failed" && uploadStage !== "ready" && (
+                                    <span className="relative h-2 w-10 overflow-hidden rounded-full bg-neutral-800">
+                                        <span className="absolute inset-y-0 left-0 w-1/2 animate-[shimmer_1.4s_ease-in-out_infinite] rounded-full bg-white/40 blur-sm" />
+                                    </span>
+                                )}
+
                                 <button
                                     type="button"
                                     onClick={clearAttachment}
-                                    className="ml-1 rounded p-0.5 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white"
+                                    className="ml-1 shrink-0 rounded p-0.5 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white"
                                     title="Remove attachment"
                                 >
                                     <X className="h-3.5 w-3.5" />
@@ -179,7 +310,6 @@ export default function ChatComposer({
                         </motion.div>
                     )}
                 </AnimatePresence>
-
                 <textarea
                     ref={textareaRef}
                     rows={1}
@@ -221,10 +351,12 @@ export default function ChatComposer({
                         whileTap={{ scale: 0.95 }}
                         disabled={(!inputValue.trim() && !pendingFile && !displayAttachmentName) || isLoading || disabled}
                         onClick={handleSend}
-                        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-all ${inputValue.trim() || pendingFile || displayAttachmentName
-                            ? "bg-white text-black shadow-sm"
-                            : "bg-neutral-800 text-neutral-600 cursor-not-allowed"
-                            }`}
+                        className={[
+                            "inline-flex h-8 w-8 items-center justify-center rounded-lg transition-all",
+                            canSend
+                                ? "bg-white text-black shadow-sm"
+                                : "cursor-not-allowed bg-neutral-800 text-neutral-600",
+                        ].join(" ")}
                     >
                         {isLoading ? (
                             <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />

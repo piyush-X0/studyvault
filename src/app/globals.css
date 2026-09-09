@@ -138,6 +138,15 @@
   backdrop-filter: blur(14px) saturate(130%);
   border: 1px solid var(--panel-border);
 }
+@keyframes shimmer {
+  0% {
+    transform: translateX(-150%);
+  }
+
+  100% {
+    transform: translateX(250%);
+  }
+}
 
 /* 5. Global Base Styles overrides */
 @layer base {

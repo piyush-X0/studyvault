@@ -27,8 +27,8 @@ export function DataFolioChat() {
     const [input, setInput] = useState("");
     const [asking, setAsking] = useState(false);
     const [thinkingLabel, setThinkingLabel] = useState("thinking...");
-
     const [pendingFile, setPendingFile] = useState<File | null>(null);
+    const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
     const [uploadStage, setUploadStage] = useState<UploadStage>("idle");
     const [uploadedDocId, setUploadedDocId] = useState<string | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
@@ -74,30 +74,44 @@ export function DataFolioChat() {
 
     function startPolling(docId: string) {
         stopPolling();
+
         pollingRef.current = setInterval(async () => {
             try {
                 const docs = await fetchDocuments();
                 setDocuments(docs);
-                const doc = docs.find((d) => d.id === docId);
-                if (!doc) return;
+
+                const doc = docs.find((item) => item.id === docId);
+
+                if (!doc) {
+                    return;
+                }
 
                 if (doc.embeddingStatus === "EMBEDDED") {
                     stopPolling();
                     setUploadStage("ready");
                     setActiveDocId(docId);
-                    setMessages([]);
+                    setPendingFile(null);
+                    setUploadedDocId(docId);
+                    setMessages(await fetchMessages(docId));
+                    return;
                 }
-                if (doc.embeddingStatus === "FAILED" || doc.extractedStatus === "FAILED") {
+
+                if (
+                    doc.embeddingStatus === "FAILED" ||
+                    doc.extractedStatus === "FAILED"
+                ) {
                     stopPolling();
                     setUploadStage("failed");
                     setPendingFile(null);
-                    setUploadedDocId(null)
+                    setUploadedDocId(null);
+                    setUploadedFileName(null);
                     showUploadError(getProcessingErrorMessage(doc));
-                    return;
                 }
-            } catch {
+            } catch (error) {
+                console.error("Document status polling failed:", error);
                 stopPolling();
                 setUploadStage("failed");
+                showUploadError("Could not check document processing status.");
             }
         }, 3000);
 
@@ -119,17 +133,25 @@ export function DataFolioChat() {
 
     async function handlePickFile(file: File) {
         setUploadError(null);
+        setUploadedFileName(file.name);
 
         if (file.size > MAX_UPLOAD_BYTES) {
+            setUploadedFileName(null);
             showUploadError("File too large. Maximum size is 1 MB.");
             return;
         }
+
         if (!ALLOWED_MIME.includes(file.type)) {
-            showUploadError("Unsupported file type. Use PDF, DOCX, TXT, or Markdown.");
+            setUploadedFileName(null);
+            showUploadError(
+                "Unsupported file type. Use PDF, DOCX, TXT, or Markdown.",
+            );
             return;
         }
+
         try {
             if (await hasTooMuchPlainText(file)) {
+                setUploadedFileName(null);
                 showUploadError(
                     "This text file exceeds the 50,000-character demo limit. " +
                     "Upload a shorter section instead.",
@@ -138,12 +160,11 @@ export function DataFolioChat() {
             }
         } catch (error) {
             console.error("Could not read text file before upload:", error);
-
-            showUploadError(
-                "Could not read this text file. Please try another file.",
-            );
+            setUploadedFileName(null);
+            showUploadError("Could not read this text file. Please try another file.");
             return;
         }
+
         setPendingFile(file);
         setUploadStage("uploading");
 
@@ -151,13 +172,15 @@ export function DataFolioChat() {
             const documentId = await uploadDocument(file);
 
             setUploadedDocId(documentId);
+            setActiveDocId(documentId);
             setUploadStage("processing");
 
-            void refreshDocuments();
+            await refreshDocuments();
             startPolling(documentId);
         } catch (error) {
             stopPolling();
             setPendingFile(null);
+            setUploadedFileName(null);
             setUploadedDocId(null);
             setUploadStage("failed");
 
@@ -169,17 +192,26 @@ export function DataFolioChat() {
         }
     }
     async function handleClearAttachment() {
-        if (uploadedDocId && uploadStage === "ready") {
+        if (uploadedDocId) {
             try {
                 await apiDeleteDocument(uploadedDocId);
-            } catch {
-                console.error("failed to delete document");
+            } catch (error) {
+                console.error("Failed to delete uploaded document:", error);
+                showUploadError("Could not remove the uploaded document.");
+                return;
             }
-            setActiveDocId(null);
-            refreshDocuments();
+
+            if (activeDocId === uploadedDocId) {
+                setActiveDocId(null);
+                setMessages([]);
+            }
+
+            await refreshDocuments();
         }
+
         setPendingFile(null);
         setUploadedDocId(null);
+        setUploadedFileName(null);
         setUploadStage("idle");
     }
 
@@ -297,12 +329,11 @@ export function DataFolioChat() {
         }
 
         if (!activeDocId) {
-            showUploadError("Upload a document first, then ask your question.");
+            showUploadError("Upload or select a document first.");
             return;
         }
 
         const docId = activeDocId;
-        const fileName = pendingFile?.name;
         const now = Date.now();
         const assistantId = `a-${now}`;
 
@@ -312,7 +343,7 @@ export function DataFolioChat() {
                 id: `u-${now}`,
                 role: "user",
                 text: question,
-                ...(fileName ? { fileName } : {}),
+                ...(uploadedFileName ? { fileName: uploadedFileName } : {}),
             },
             {
                 id: assistantId,
@@ -330,28 +361,32 @@ export function DataFolioChat() {
             await persistMessage(docId, {
                 role: "user",
                 text: question,
-                ...(fileName ? { fileName } : {}),
+                ...(uploadedFileName ? { fileName: uploadedFileName } : {}),
             });
 
             let firstChunk = true;
 
-            const fullAnswer = await streamAnswer(docId, question, (chunk) => {
-                if (firstChunk) {
-                    clearThinkingTimers();
-                    firstChunk = false;
-                }
+            const fullAnswer = await streamAnswer(
+                docId,
+                question,
+                (chunk) => {
+                    if (firstChunk) {
+                        clearThinkingTimers();
+                        firstChunk = false;
+                    }
 
-                setMessages((previous) =>
-                    previous.map((message) =>
-                        message.id === assistantId
-                            ? {
-                                ...message,
-                                text: message.text + chunk,
-                            }
-                            : message,
-                    ),
-                );
-            });
+                    setMessages((previous) =>
+                        previous.map((message) =>
+                            message.id === assistantId
+                                ? {
+                                    ...message,
+                                    text: message.text + chunk,
+                                }
+                                : message,
+                        ),
+                    );
+                },
+            );
 
             await persistMessage(docId, {
                 role: "assistant",
@@ -375,19 +410,27 @@ export function DataFolioChat() {
         } finally {
             clearThinkingTimers();
             setAsking(false);
+            setUploadedFileName(null);
         }
     }
 
     async function handleSelect(id: string) {
+        stopPolling();
+
         setActiveDocId(id);
         setMessages([]);
         setPendingFile(null);
         setUploadedDocId(null);
+        setUploadedFileName(null);
         setUploadStage("idle");
+        setUploadError(null);
+
         try {
-            setMessages(await fetchMessages(id));
-        } catch {
-            console.error("failed to load messages");
+            const selectedMessages = await fetchMessages(id);
+            setMessages(selectedMessages);
+        } catch (error) {
+            console.error("Failed to load messages:", error);
+            showUploadError("Could not load this document's conversation.");
         }
     }
 
@@ -411,52 +454,57 @@ export function DataFolioChat() {
         setInput("");
         setPendingFile(null);
         setUploadedDocId(null);
+        setUploadedFileName(null);
         setUploadStage("idle");
         setUploadError(null);
     }
-
     return (
-        <div className="flex h-screen flex-col bg-background">
-            <header className="shrink-0 px-6 pt-5 pb-3">
-                <h1 className="font-display text-[30px] leading-none tracking-tight text-foreground">
-                    DataFolio
-                </h1>
-            </header>
+        <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4">
+            <ProjectSidebar
+                documents={documents}
+                isLoading={documentsLoading}
+                activeId={activeDocId}
+                onSelect={handleSelect}
+                onDelete={handleDelete}
+                onNewChat={handleNewChat}
+            />
 
-            <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4">
-                <ProjectSidebar
-                    documents={documents}
-                    isLoading={documentsLoading}
-                    activeId={activeDocId}
-                    onSelect={handleSelect}
-                    onDelete={handleDelete}
-                    onNewChat={handleNewChat}
+            <main className="flex min-w-0 flex-1 flex-col">
+                <ChatTranscript
+                    messages={messages.map((message) => ({
+                        ...message,
+                        content: message.text,
+                    }))}
+                    isLoading={asking}
                 />
 
-                <main className="flex min-w-0 flex-1 flex-col">
-                    <ChatTranscript
-                        messages={messages.map((message) => ({
-                            ...message,
-                            content: message.text,
-                        }))}
-
+                <div className="pt-2">
+                    <ChatComposer
+                        value={input}
+                        onChange={setInput}
+                        onSubmit={handleSubmit}
+                        onPickFile={handlePickFile}
+                        onClearAttachment={handleClearAttachment}
+                        attachmentName={
+                            uploadedFileName ??
+                            pendingFile?.name ??
+                            documents.find((doc) => doc.id === activeDocId)?.fileName ??
+                            null
+                        }
+                        selectedDocName={
+                            documents.find((doc) => doc.id === activeDocId)?.fileName
+                        }
+                        uploadStage={uploadStage}
+                        uploadError={uploadError}
+                        disabled={
+                            asking ||
+                            documentsLoading ||
+                            uploadStage === "uploading" ||
+                            uploadStage === "processing"
+                        }
                     />
-                    <div className="pt-2">
-                        <ChatComposer
-                            value={input}
-                            onChange={setInput}
-                            onSubmit={handleSubmit}
-                            onSend={handleSubmit}
-                            onPickFile={handlePickFile}
-                            onClearAttachment={handleClearAttachment}
-                            attachmentName={pendingFile?.name ?? null}
-                            uploadStage={uploadStage}
-                            uploadError={uploadError}
-                            disabled={asking}
-                        />
-                    </div>
-                </main>
-            </div>
+                </div>
+            </main>
         </div>
     );
 }
