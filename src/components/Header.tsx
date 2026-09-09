@@ -1,45 +1,62 @@
-import { auth } from "@/auth";
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Menu, Sparkles } from "lucide-react";
 import { AccountMenu } from "./ui/AccountMenu";
-import { Layers3, CpuIcon, CloudCheck } from "lucide-react";
+import { useSession } from "next-auth/react";
 
+interface HeaderProps {
+    onToggleMobileSidebar?: () => void;
+    isScrolled?: boolean;
+}
 
-export async function Header() {
-    const session = await auth();
+export default function Header({ onToggleMobileSidebar, isScrolled = false }: HeaderProps) {
+    const pathname = usePathname();
+    const { data: session } = useSession();
+
+    const isExcluded = pathname === "/signin" || pathname === "/signup";
+    if (isExcluded) return null;
 
     return (
+        <header
+            className={`relative z-40 w-full shrink-0 border-b transition-all duration-200 bg-[#0A0A0A]/95 backdrop-blur-md ${isScrolled
+                ? "border-neutral-800 shadow-md shadow-black/60"
+                : "border-neutral-800/80"
+                }`}
+        >
+            <div className="flex h-14 items-center justify-between px-4">
+                <div className="flex items-center gap-3">
+                    {onToggleMobileSidebar && (
+                        <button
+                            type="button"
+                            onClick={onToggleMobileSidebar}
+                            aria-label="Toggle navigation menu"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-800 bg-[#141414] text-neutral-300 transition-colors hover:bg-neutral-800 hover:text-white lg:hidden"
+                        >
+                            <Menu className="h-5 w-5" />
+                        </button>
+                    )}
 
-        <header className="h-14 border-b border-surface-border bg-surface-subtle/80 px-5 flex items-center justify-between shrink-0  select-none">
-            <div className="flex items-center gap-4">
-                {/**logo-Branding */}
-                <div className="flex items-center gap-2 group cursor-pointer">
-                    <span className="font-serif text-2xl tracking-normal text-zinc-100 italic transition-transform group-hover:scale-105 duration-200">
-                        Datafolio
-                    </span>
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent-emerald pulse-indicator"></span>
-                </div>
-                {/**Workspace-benchMark */}
-                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-card border border-surface-border text-xs text-zinc-400 font-mono">
-                    <Layers3 className="w-3 h-3" />
-                    <span>workspace/rag-vault-01</span>
+                    <Link href="/" className="group flex items-center gap-2.5 transition-opacity hover:opacity-90">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-black shadow-sm">
+                            <Sparkles className="h-4 w-4 transition-transform group-hover:scale-110" />
+                        </div>
+                        <span className="font-semibold tracking-tight text-white text-base">
+                            StudyVault
+                        </span>
+                    </Link>
                 </div>
 
-            </div>
-            <div className=" hidden md:flex items-center gap-3 px-3.5 py-1 rounded-full bg-surface-card/90 border border-surface-border text-[11px] font-mono text-zinc-400 shadow-inn-aller hover:text-zinc-300 transition-all duration-300">
-                <CpuIcon className="w-3 h-3 text-purple-900 " />
-                <span>   pgvector  1536d</span>
-                <span className="text-zinc-600">|</span>
-                <span className="flex items-center gap-1 text-emerald-400/90"> <CloudCheck style={{ width: "12", height: "12" }} /> R2 Connected</span>
-            </div>
-
-            {/**user account-avatar */}
-            <div className="flex items-center gap-2 pl-2 pr-1.5 py-1 rounded-full bg-surface-card hover:bg-surface-elevated border border-surface-border cursor-pointer transition-all duration-200">
-                <span className="text-xs font-mono text-zinc-300 hidden sm:inline pl-1">
-                    free-tier</span>
-                <div className="">
-                    <div><AccountMenu />
-                    </div>
+                <div className="flex items-center gap-3">
+                    {session && (
+                        <span className="hidden text-xs text-neutral-400 sm:inline-block">
+                            {session.user?.email}
+                        </span>
+                    )}
+                    <AccountMenu />
                 </div>
             </div>
-        </header >
+        </header>
     );
 }

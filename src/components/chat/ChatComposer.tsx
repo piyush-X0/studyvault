@@ -1,153 +1,239 @@
-import { useRef } from "react";
-import { ArrowUp, Plus, Sparkle, X, SquareText } from "lucide-react";
-import type { UploadStage } from "@/lib/studyvault-api";
+"use client";
+
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { ArrowUp, Plus, X, FileText, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+type UploadStage = "idle" | "uploading" | "processing" | "ready" | "failed";
 
 interface ChatComposerProps {
-    value: string;
-    onChange: (value: string) => void;
-    onSubmit: () => void;
-    onPickFile?: (file: File) => void;
+    value?: string;
+    onChange?: (value: string) => void;
+    onSubmit?: () => void;
+    onSend?: (message: string) => void;
+    onFileUpload?: (file: File) => void;
+    onPickFile?: (file: File) => Promise<void> | void;
     onClearAttachment?: () => void;
     attachmentName?: string | null;
     uploadStage?: UploadStage;
     uploadError?: string | null;
+    isLoading?: boolean;
     disabled?: boolean;
+    placeholder?: string;
+    selectedDocName?: string;
 }
 
-export function ChatComposer({
+export default function ChatComposer({
     value,
     onChange,
     onSubmit,
+    onSend,
+    onFileUpload,
     onPickFile,
     onClearAttachment,
     attachmentName,
-    uploadStage = "idle",
+    uploadStage,
     uploadError,
-    disabled,
+    isLoading = false,
+    disabled = false,
+    placeholder = "Ask anything about your document...",
+    selectedDocName,
 }: ChatComposerProps) {
-    const fileRef = useRef<HTMLInputElement>(null);
+    const [internalInput, setInternalInput] = useState("");
+    const [pendingFile, setPendingFile] = useState<File | null>(null);
+    const [isFocused, setIsFocused] = useState(false);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    function autoResize(el: HTMLTextAreaElement) {
-        el.style.height = "auto";
-        el.style.height = `${Math.min(el.scrollHeight, 240)}px`;
-    }
+    const inputValue = value ?? internalInput;
+    const displayAttachmentName = attachmentName ?? pendingFile?.name ?? null;
+
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+        }
+    }, [inputValue]);
+
+    const updateInput = (next: string) => {
+        if (value !== undefined) {
+            onChange?.(next);
+            return;
+        }
+
+        setInternalInput(next);
+    };
+
+    const clearAttachment = () => {
+        setPendingFile(null);
+        onClearAttachment?.();
+    };
+
+    const handleSend = () => {
+        const trimmed = inputValue.trim();
+
+        if ((!trimmed && !pendingFile && !displayAttachmentName) || isLoading || disabled) {
+            return;
+        }
+
+        if (pendingFile && (onPickFile || onFileUpload)) {
+            const file = pendingFile;
+            setPendingFile(null);
+
+            if (onPickFile) {
+                void onPickFile(file);
+                return;
+            }
+
+            onFileUpload?.(file);
+            return;
+        }
+
+        if (trimmed) {
+            if (onSubmit) {
+                onSubmit();
+            } else if (onSend) {
+                onSend(trimmed);
+            }
+
+            if (value === undefined) {
+                setInternalInput("");
+            }
+        }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+
+        if (!file) {
+            e.target.value = "";
+            return;
+        }
+
+        e.target.value = "";
+
+        if (onPickFile) {
+            void onPickFile(file);
+            return;
+        }
+
+        setPendingFile(file);
+    };
+
+    const formatFileSize = (bytes: number) => {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    const showAttachment = displayAttachmentName && !uploadStage ? true : !!displayAttachmentName;
 
     return (
-        <div className="rounded-2xl border border-panel-border bg-composer p-4 pb-3">
-            <div className="flex items-center gap-2 mb-2">
-                {attachmentName && (
-                    <div className="flex items-center gap-2.5 px-2.5 py-1 rounded-[10px] bg-surface-elevated border border-surface-border text-xs text-zinc-200">
-                        <SquareText className=" size-3.5 shrink-0 text-zinc-400" />
-                        <span className="truncate text-[11px] text-muted-foreground">{attachmentName}</span>
-                        <button
-                            type="button"
-                            aria-label="Remove attachment"
-                            onClick={onClearAttachment}
-                            className="text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                            <X className="size-3" />
-                        </button>
-                    </div>
-                )}
-            </div>
-
-            {uploadStage === "uploading" && (
-                <p className="mb-2 text-[11px] text-muted-foreground">
-                    Uploading document...
-                </p>
-            )}
-
-            {uploadStage === "processing" && (
-                <p className="mb-2 text-[11px] text-muted-foreground">
-                    Scanning document...
-                </p>
-            )}
-
-            {uploadStage === "failed" && !uploadError && (
-                <p className="mb-2 text-[11px] text-red-400">
-                    Document processing failed.
-                </p>
-            )}
-
-            {uploadError && (
-                <p className="mb-2 text-[11px] text-red-400">
-                    {uploadError}
-                </p>
-            )}
-
-            <textarea
-                rows={1}
-                value={value}
-                onChange={(e) => {
-                    onChange(e.target.value);
-                    autoResize(e.target);
-                }}
-                onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        onSubmit();
-                    }
-                }}
-                placeholder="Upload a document and ask anything about it"
-                aria-label="Message"
-                className="min-h-18 w-full resize-none overflow-hidden bg-transparent text-[14px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
+        <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 pb-4">
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.txt,.docx"
+                onChange={handleFileChange}
+                className="hidden"
             />
 
-            <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-2">
-                    <input
-                        ref={fileRef}
-                        type="file"
-                        accept=".pdf,.doc,.docx,.txt,.md"
-                        className="hidden"
-                        onChange={(event) => {
-                            const file = event.target.files?.[0];
+            <div
+                className={`relative rounded-2xl border transition-all duration-200 bg-[#121212]/95 backdrop-blur-md ${isFocused
+                    ? "border-neutral-500 ring-1 ring-neutral-500 shadow-lg shadow-black/50"
+                    : "border-neutral-800"
+                    }`}
+            >
+                <AnimatePresence>
+                    {showAttachment && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 5 }}
+                            className="flex items-center gap-2 px-3.5 pt-3 pb-1"
+                        >
+                            <div className="flex items-center gap-2 rounded-xl border border-neutral-700 bg-[#1C1C1C] px-3 py-1.5 text-xs text-neutral-200 shadow-sm">
+                                <FileText className="h-4 w-4 text-emerald-400 shrink-0" />
+                                <span className="font-medium truncate max-w-55">{displayAttachmentName}</span>
+                                {pendingFile && (
+                                    <span className="text-[10px] text-neutral-500 font-mono">
+                                        ({formatFileSize(pendingFile.size)})
+                                    </span>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={clearAttachment}
+                                    className="ml-1 rounded p-0.5 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white"
+                                    title="Remove attachment"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                            if (file) {
-                                onPickFile?.(file);
-                            }
+                <textarea
+                    ref={textareaRef}
+                    rows={1}
+                    value={inputValue}
+                    disabled={disabled || isLoading}
+                    onChange={(e) => updateInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    placeholder={
+                        selectedDocName
+                            ? `Ask question in "${selectedDocName}"...`
+                            : placeholder
+                    }
+                    className="w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none"
+                />
 
-                            event.target.value = "";
-                        }}
-                    />
+                <div className="flex items-center justify-between px-3 py-2 border-t border-neutral-800/80">
+                    <div className="flex items-center gap-2">
+                        <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => fileInputRef.current?.click()}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-800 bg-[#1A1A1A] px-2.5 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:border-neutral-700 hover:bg-[#222222] hover:text-white"
+                            title="Attach document (.pdf, .txt, .docx)"
+                        >
+                            <Plus className="h-3.5 w-3.5 text-emerald-400" />
+                            <span>Attach document</span>
+                        </motion.button>
 
-                    <button
-                        type="button"
-                        aria-label="Upload document"
-                        title="Upload a document"
-                        onClick={() => fileRef.current?.click()}
-                        className="grid size-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-state-hover hover:text-foreground"
+                        <span className="text-[11px] text-neutral-500 hidden sm:inline-block">
+                            Shift + Enter for new line
+                        </span>
+                    </div>
+
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        disabled={(!inputValue.trim() && !pendingFile && !displayAttachmentName) || isLoading || disabled}
+                        onClick={handleSend}
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-all ${inputValue.trim() || pendingFile || displayAttachmentName
+                            ? "bg-white text-black shadow-sm"
+                            : "bg-neutral-800 text-neutral-600 cursor-not-allowed"
+                            }`}
                     >
-                        <Plus className="size-4" />
-                    </button>
-
-                    <span className="hidden text-[9px] text-muted-foreground sm:inline  tracking-wider">
-                        PDF, DOCX, TXT · max <span className="text-red-500"> 1 MB</span> · short documents work best
-                    </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                    <span className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium text-foreground/80">
-                        <Sparkle className="size-3.5" />
-                        Gemini 3 Flash
-                    </span>
-
-                    <button
-                        type="button"
-                        onClick={onSubmit}
-                        disabled={disabled || (value.trim().length === 0 && !attachmentName)}
-                        aria-label="Send message"
-                        className="grid size-8 place-items-center rounded-full text-foreground transition-colors hover:bg-state-hover disabled:opacity-40"
-                    >
-                        <ArrowUp className="size-4" />
-                    </button>
+                        {isLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
+                        ) : (
+                            <ArrowUp className="h-4 w-4" />
+                        )}
+                    </motion.button>
                 </div>
             </div>
-            <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
-                Supports PDF, DOCX, TXT, and Markdown up to 1 MB. Very text-heavy documents
-                may exceed the demo processing <span className="text-blue-500"> limit—upload</span> a chapter, section, or short
-                notes instead.
-            </p>
         </div>
     );
 }

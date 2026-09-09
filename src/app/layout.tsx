@@ -3,7 +3,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/Header";
+import Header from "@/components/Header";
 import { SessionProvider } from "next-auth/react"
 
 const geistSans = Geist({
@@ -37,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="overflow-hidden h-screen w-screen flex flex-col">
         <SessionProvider>
-          <Header />
+          {/* <Header /> */}
           <main className="flex-1 overflow-hidden">{children}</main>
         </SessionProvider>
       </body>

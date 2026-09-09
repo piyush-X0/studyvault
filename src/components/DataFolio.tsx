@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ProjectSidebar } from "@/components/chat/ProjectSidebar";
-import { ChatTranscript } from "@/components/chat/ChatTranscript";
-import { ChatComposer } from "@/components/chat/ChatComposer";
+import ProjectSidebar from "@/components/chat/ProjectSidebar";
+import ChatTranscript from "@/components/chat/ChatTranscript";
+import ChatComposer from "@/components/chat/ChatComposer";
 import {
     ALLOWED_MIME,
     MAX_UPLOAD_BYTES,
@@ -435,20 +435,18 @@ export function DataFolioChat() {
 
                 <main className="flex min-w-0 flex-1 flex-col">
                     <ChatTranscript
-                        messages={messages}
-                        thinking={asking}
-                        thinkingLabel={thinkingLabel}
-                        emptyLabel={
-                            activeDocId
-                                ? "Ask anything about this document."
-                                : "Upload a document to start."
-                        }
+                        messages={messages.map((message) => ({
+                            ...message,
+                            content: message.text,
+                        }))}
+
                     />
                     <div className="pt-2">
                         <ChatComposer
                             value={input}
                             onChange={setInput}
                             onSubmit={handleSubmit}
+                            onSend={handleSubmit}
                             onPickFile={handlePickFile}
                             onClearAttachment={handleClearAttachment}
                             attachmentName={pendingFile?.name ?? null}
