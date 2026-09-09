@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { FileText } from "lucide-react";
+import { SquareText } from "lucide-react";
 import type { ChatMessage } from "@/lib/studyvault-api";
 
 function renderInline(text: string) {
@@ -56,7 +56,7 @@ export function ChatTranscript({
                         <div key={message.id} className="flex flex-col items-end gap-2">
                             {message.fileName && (
                                 <div className="flex max-w-[16rem] items-start gap-2 rounded-lg bg-elevated/70 px-3 py-2 ring-1 ring-panel-border">
-                                    <FileText className="mt-0.5 size-3.5 shrink-0 text-file-pdf" />
+                                    <SquareText className=" size-3.5 shrink-0 text-zinc-400" />
                                     <span className="break-all text-[10px] leading-snug text-muted-foreground">
                                         {message.fileName}
                                     </span>

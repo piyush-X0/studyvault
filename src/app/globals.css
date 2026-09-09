@@ -4,51 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@import "tailwindcss" source(none);
-@source "../src";
-@import "tw-animate-css";
-
-@custom-variant dark (&:is(.dark *));
-
-@utility no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-@utility bg-surface-subtle\/90 {
-  background-color: rgb(18 19 26 / 0.9);
-}
-@utility border-surface-border {
-  --tw-border-opacity: 1;
-  border-color: rgb(37 39 56 / var(--tw-border-opacity, 1));
-}
-@utility border-t {
-  border-top-width: 1px;
-}
-@utility bg-surface-card {
-  --tw-bg-opacity: 1;
-  background-color: rgb(22 23 34 / var(--tw-bg-opacity, 1));
-}
-@utility from-emerald-500 {
-  --tw-gradient-from: #10b981 var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(16 185 129 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-}
-@utility bg-gradient-to-r {
-  background-image: linear-gradient(to right, var(--tw-gradient-stops));
-}
-@utility text-accent-emerald {
-  --tw-text-opacity: 1;
-  color: rgb(16 185 129 / var(--tw-text-opacity, 1));
-}
-@utility panel-glass {
-  background-color: var(--panel);
-  backdrop-filter: blur(14px) saturate(130%);
-  border: 1px solid var(--panel-border);
-}
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -82,7 +37,14 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* App-specific surfaces */
+  /* Custom App Surfaces (Added missing colors here so you don't have to hardcode them) */
+  --color-surface-subtle: rgb(18 19 26);
+  --color-surface-border: rgb(37 39 56);
+  --color-surface-card: rgb(22 23 34);
+  --color-accent-emerald: rgb(16 185 129);
+  --color-surface-elevated: rgb(28 30 43 / var(--tw-bg-opacity, 1));
+
+  /* Glass Panel variables */
   --color-panel: var(--panel);
   --color-panel-border: var(--panel-border);
   --color-elevated: var(--elevated);
@@ -96,6 +58,7 @@
   --color-file-txt: var(--file-txt);
 }
 
+/* 3. Base Custom Variables (Tokens) */
 :root {
   --radius: 0.75rem;
 
@@ -105,7 +68,6 @@
 
   --background: oklch(0.16 0.004 285);
   --foreground: oklch(0.93 0.003 285);
-
   --card: oklch(0.19 0.004 285);
   --card-foreground: oklch(0.93 0.003 285);
   --popover: oklch(0.22 0.005 285);
@@ -115,7 +77,6 @@
   --primary-foreground: oklch(0.18 0.004 285);
   --secondary: oklch(0.27 0.005 285);
   --secondary-foreground: oklch(0.93 0.003 285);
-
   --muted: oklch(0.25 0.005 285);
   --muted-foreground: oklch(0.62 0.006 285);
   --accent: oklch(0.3 0.006 285);
@@ -143,7 +104,6 @@
 }
 
 .dark {
-  --borderColor-secondary: 218 220 224;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -162,39 +122,33 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* 4. Truly Custom Utilities */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility panel-glass {
+  background-color: var(--panel);
+  backdrop-filter: blur(14px) saturate(130%);
+  border: 1px solid var(--panel-border);
+}
+
+/* 5. Global Base Styles overrides */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
   }
   html {
     @apply font-sans;
-  }
-  * {
-    border-color: var(--color-border);
-  }
-
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--font-body);
-    -webkit-font-smoothing: antialiased;
   }
 }

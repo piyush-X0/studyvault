@@ -21,6 +21,7 @@ import {
 export function DataFolioChat() {
 
     const [documents, setDocuments] = useState<StudyDocument[]>([]);
+    const [documentsLoading, setDocumentsLoading] = useState(true);
     const [activeDocId, setActiveDocId] = useState<string | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState("");
@@ -42,8 +43,11 @@ export function DataFolioChat() {
             setDocuments(documents);
         } catch (error) {
             console.error("Failed to fetch documents:", error);
+        } finally {
+            setDocumentsLoading(false);
         }
     }, []);
+
     useEffect(() => {
         void refreshDocuments();
 
@@ -422,6 +426,7 @@ export function DataFolioChat() {
             <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4">
                 <ProjectSidebar
                     documents={documents}
+                    isLoading={documentsLoading}
                     activeId={activeDocId}
                     onSelect={handleSelect}
                     onDelete={handleDelete}

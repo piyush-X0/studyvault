@@ -27,10 +27,10 @@ export function AccountMenu() {
     const avatarText = initials(user.name, user.email);
 
     return (
-        <Menu.Root>
+        <Menu.Root >
             <Menu.Trigger
                 aria-label="Open account menu"
-                className="grid size-7 place-items-center overflow-hidden rounded-full border border-neutral-700 bg-neutral-800 text-xs font-semibold text-neutral-100 transition hover:border-neutral-500 hover:bg-neutral-700"
+                className="  grid size-7 place-items-center overflow-hidden rounded-full border border-neutral-700 bg-neutral-800 text-xs font-semibold text-neutral-100 transition hover:border-neutral-500 hover:bg-neutral-700"
             >
                 {user.image ? (
                     <img
@@ -46,7 +46,7 @@ export function AccountMenu() {
 
             <Menu.Portal>
                 <Menu.Positioner sideOffset={8} align="end">
-                    <Menu.Popup className="z-50 w-64 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 p-1.5 shadow-xl shadow-black/40">
+                    <Menu.Popup className="z-50  w-64 overflow-hidden rounded-[13px]  border border-neutral-800 bg-neutral-900 p-1.5 shadow-xl shadow-black/40">
                         <div className="border-b border-neutral-800 px-3 py-2.5">
                             <p className="truncate text-sm font-medium text-neutral-100">
                                 {label}

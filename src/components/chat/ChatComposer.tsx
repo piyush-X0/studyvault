@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { ArrowUp, Plus, Sparkle, X, FileText } from "lucide-react";
+import { ArrowUp, Plus, Sparkle, X, SquareText } from "lucide-react";
 import type { UploadStage } from "@/lib/studyvault-api";
 
 interface ChatComposerProps {
@@ -34,20 +34,22 @@ export function ChatComposer({
 
     return (
         <div className="rounded-2xl border border-panel-border bg-composer p-4 pb-3">
-            {attachmentName && (
-                <div className="mb-2 flex w-fit max-w-full items-center gap-2 rounded-lg bg-elevated/70 px-3 py-1.5 ring-1 ring-panel-border">
-                    <FileText className="size-3.5 shrink-0 text-file-pdf" />
-                    <span className="truncate text-[11px] text-muted-foreground">{attachmentName}</span>
-                    <button
-                        type="button"
-                        aria-label="Remove attachment"
-                        onClick={onClearAttachment}
-                        className="text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                        <X className="size-3" />
-                    </button>
-                </div>
-            )}
+            <div className="flex items-center gap-2 mb-2">
+                {attachmentName && (
+                    <div className="flex items-center gap-2.5 px-2.5 py-1 rounded-[10px] bg-surface-elevated border border-surface-border text-xs text-zinc-200">
+                        <SquareText className=" size-3.5 shrink-0 text-zinc-400" />
+                        <span className="truncate text-[11px] text-muted-foreground">{attachmentName}</span>
+                        <button
+                            type="button"
+                            aria-label="Remove attachment"
+                            onClick={onClearAttachment}
+                            className="text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                            <X className="size-3" />
+                        </button>
+                    </div>
+                )}
+            </div>
 
             {uploadStage === "uploading" && (
                 <p className="mb-2 text-[11px] text-muted-foreground">
@@ -57,7 +59,7 @@ export function ChatComposer({
 
             {uploadStage === "processing" && (
                 <p className="mb-2 text-[11px] text-muted-foreground">
-                    Processing document...
+                    Scanning document...
                 </p>
             )}
 
