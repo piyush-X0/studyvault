@@ -130,30 +130,19 @@ export default function ChatPage() {
 
     async function handlePickFile(file: File) {
         setUploadError(null);
-        setUploadedFileName(file.name);
-
-        const documentId = await uploadDocument(file);
-
-        setUploadedDocId(documentId);
-        setActiveDocId(documentId);
-        setUploadStage("processing");
-
 
         if (file.size > MAX_UPLOAD_BYTES) {
-            setUploadedFileName(null);
             showUploadError("File too large. Maximum size is 1 MB.");
             return;
         }
 
         if (!ALLOWED_MIME.includes(file.type)) {
-            setUploadedFileName(null);
-            showUploadError(
-                "Unsupported file type. Use PDF, DOCX, TXT, or Markdown.",
-            );
+            showUploadError("Unsupported file type. Use PDF, DOCX, TXT, or Markdown.");
             return;
         }
 
         setPendingFile(file);
+        setUploadedFileName(file.name);
         setUploadStage("uploading");
 
         try {
@@ -173,9 +162,7 @@ export default function ChatPage() {
             setUploadStage("failed");
 
             showUploadError(
-                error instanceof Error
-                    ? error.message
-                    : "Upload failed. Please try again.",
+                error instanceof Error ? error.message : "Upload failed. Please try again.",
             );
         }
     }

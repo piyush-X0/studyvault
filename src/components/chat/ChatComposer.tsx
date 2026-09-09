@@ -234,6 +234,11 @@ export default function ChatComposer({
 
     return (
         <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 pb-4">
+            {uploadError && (
+                <p className="mt-1.5 px-1 text-xs text-red-400">
+                    {uploadError}
+                </p>
+            )}
             <input
                 ref={fileInputRef}
                 type="file"
@@ -259,22 +264,24 @@ export default function ChatComposer({
                         >
                             <div
                                 className={[
-                                    "flex min-w-0 flex-1 items-center gap-2 rounded-xl",
+                                    "flex max-w-55 flex-1 items-center gap-2 rounded-xl",
                                     "border border-neutral-700 px-3 py-1.5 text-xs",
                                     "text-neutral-200 shadow-sm transition-colors duration-300",
                                     uploadAnimation,
                                 ].join(" ")}
                             >
-                                {AttachmentIcon && attachmentIcon && (
-                                    <AttachmentIcon
-                                        className={`h-4 w-4 shrink-0 ${attachmentIcon.className}`}
-                                    />
-                                )}
 
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate font-medium">
-                                        {displayAttachmentName}
-                                    </p>
+
+                                <div className=" flex-1 min-w-0 min-h-11 ">
+                                    <div className="flex gap-0.5">
+                                        {AttachmentIcon && attachmentIcon && (
+                                            <AttachmentIcon
+                                                className={`h-3.5 w-3.5 shrink-0 ${attachmentIcon.className}`}
+                                            />
+                                        )}
+                                        <p className="truncate font-medium">
+                                            {displayAttachmentName}
+                                        </p></div>
 
                                     {uploadStatusText && (
                                         <p className="mt-0.5 text-[10px] text-neutral-500">
@@ -306,6 +313,7 @@ export default function ChatComposer({
                                 >
                                     <X className="h-3.5 w-3.5" />
                                 </button>
+
                             </div>
                         </motion.div>
                     )}
