@@ -37,10 +37,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             return NextResponse.json({ error: "Document has not been chunked yet" }, { status: 409 });
         }
 
-        chunks.forEach((c, i) => {
-            if (!c.content || c.content.trim().length === 0) {
-            }
-        });
+        const invalidChunk = chunks.find(
+            (chunk) => !chunk.content || chunk.content.trim().length === 0
+        );
+
+        if (invalidChunk) {
+            return NextResponse.json(
+                { error: "Document contains an empty chunk" },
+                { status: 422 }
+            );
+        }
         await prisma.document.update({
             where: { id },
             data: { embeddingStatus: "PROCESSING" }

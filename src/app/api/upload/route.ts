@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
         const raw = await req.json();
         const { fileName, contentType, size } = parseJsonBody(raw, uploadBodySchema);
 
-        if (!fileName || !contentType || !size) {
+        if (!fileName || !contentType || !size === undefined) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 })
         }
         if (!ALLOWED_TYPES.has(contentType)) {

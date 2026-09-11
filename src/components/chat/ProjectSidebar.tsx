@@ -127,7 +127,7 @@ export default function ProjectSidebar({
 
   const sidebarContent = (
     <aside
-      className={`flex h-full w-72 md:w-80 flex-col border-r border-neutral-800 bg-[#0A0A0A] text-neutral-200 ${className}`}
+      className={`flex h-full w-72 md:w-80 flex-col border-r border-neutral-800 bg-[#0A0A0A]  text-neutral-200 ${className}`}
     >
       {/* FIXED CONTROLS TOP */}
       <div className="shrink-0 p-3 space-y-2 border-b border-neutral-800/80">
@@ -175,7 +175,7 @@ export default function ProjectSidebar({
       </div>
 
       {/* DOCUMENT LIST */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1 space-y-1">
+      <div className="min-h-0 flex-1 custom-scrollbar overflow-y-auto  px-2 py-1 space-y-1">
         {filteredDocs.map((document) => {
           const isSelected = resolvedSelectedId === document.id;
           const fileName = document.fileName ?? "Untitled document";

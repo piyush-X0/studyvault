@@ -2,22 +2,11 @@
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
-import Link from "next/link";
 import {
   Sparkles,
   Database,
-  ShieldCheck,
-  ArrowRight,
   Loader2,
   Cpu,
-  Layers,
-  FileCode2,
-  Terminal,
-  Server,
-  Zap,
-  CheckCircle2,
-  ExternalLink,
-  ChevronRight,
   Lock,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -47,7 +36,7 @@ export default function SignInPage() {
       step: "02",
       title: "Semantic Chunking & Gemini Vectorization",
       description:
-        "Content is chunked into overlapping windows (~500 tokens). Chunks pass to Google Gemini's text-embedding engine producing 768-dimensional normalized dense vectors.",
+        "Content is chunked into overlapping windows (~500 tokens). Chunks pass to Google Gemini's text-embedding engine producing 1536-dimensional normalized dense vectors.",
       badge: "Vector Math",
     },
     {
