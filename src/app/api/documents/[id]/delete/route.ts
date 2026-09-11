@@ -23,13 +23,20 @@ export async function DELETE(
         if (!document) {
             return NextResponse.json({ error: "Not found" }, { status: 404 })
         }
+        try {
+            await r2Client.send(
+                new DeleteObjectCommand({
+                    Bucket: BUCKET_NAME,
+                    Key: document.r2Key,
+                })
+            );
+        } catch (error) {
+            console.error("R2 deletion failed:", error);
+        }
 
-        await r2Client.send(
-            new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: document.r2Key })
-        )
-
-        await prisma.document.delete({ where: { id } })
-
+        await prisma.document.delete({
+            where: { id },
+        });
         return NextResponse.json({ ok: true })
 
     } catch (error) {
