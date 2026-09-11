@@ -37,7 +37,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* Custom App Surfaces (Added missing colors here so you don't have to hardcode them) */
+  /* Custom App Surfaces */
   --color-surface-subtle: rgb(18 19 26);
   --color-surface-border: rgb(37 39 56);
   --color-surface-card: rgb(22 23 34);
@@ -78,7 +78,7 @@
   --secondary: oklch(0.27 0.005 285);
   --secondary-foreground: oklch(0.93 0.003 285);
   --muted: oklch(0.25 0.005 285);
-  --muted-foreground: oklch(0.62 0.006 285);
+  --muted-foreground: oklch(36.075% 0.00344 286.056);
   --accent: oklch(0.3 0.006 285);
   --accent-foreground: oklch(0.96 0.002 285);
 
@@ -124,7 +124,6 @@
   --ring: oklch(0.556 0 0);
 }
 
-/* 4. Truly Custom Utilities */
 @utility no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -138,6 +137,31 @@
   backdrop-filter: blur(14px) saturate(130%);
   border: 1px solid var(--panel-border);
 }
+
+/* New Custom Scrollbar Utility */
+@utility custom-scrollbar {
+  scrollbar-color: var(--muted-foreground) transparent;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--muted);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+    background-clip: padding-box;
+  }
+}
+
 @keyframes shimmer {
   0% {
     transform: translateX(-150%);

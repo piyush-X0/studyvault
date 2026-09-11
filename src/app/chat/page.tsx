@@ -65,13 +65,6 @@ export default function ChatPage() {
         window.setTimeout(() => setUploadError(null), 4000);
     }
 
-    function stopPolling() {
-        if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-        }
-    }
-
     function startPolling(documentId: string) {
         stopPolling();
 
@@ -128,19 +121,46 @@ export default function ChatPage() {
         }, 3000);
     }
 
+    function stopPolling() {
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    }
+    const MAX_EXTRACTED_CHARS = 50_000;
+    async function TooMuchPlainText(file: File) {
+        const plainTextTypes = ["text/plain", "text/markdown"];
+        if (!plainTextTypes.includes(file.type)) {
+            return false;
+        }
+        const text = await file.text();
+        return text.length > MAX_EXTRACTED_CHARS;
+    }
     async function handlePickFile(file: File) {
         setUploadError(null);
-
         if (file.size > MAX_UPLOAD_BYTES) {
             showUploadError("File too large. Maximum size is 1 MB.");
             return;
         }
-
         if (!ALLOWED_MIME.includes(file.type)) {
             showUploadError("Unsupported file type. Use PDF, DOCX, TXT, or Markdown.");
             return;
         }
-
+        try {
+            if (await TooMuchPlainText(file)) {
+                setUploadedFileName(null);
+                showUploadError(
+                    "This file exceeds 50K-characters demo limit. " +
+                    "Upload a shorter section instead.",
+                );
+                return;
+            }
+        } catch (error) {
+            console.error("Could not read text file before upload:", error);
+            setUploadedFileName(null);
+            showUploadError("Could not read this text file. Please try another file.");
+            return;
+        }
         setPendingFile(file);
         setUploadedFileName(file.name);
         setUploadStage("uploading");
