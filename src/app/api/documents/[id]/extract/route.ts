@@ -20,7 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         });
 
         if (!document) {
-            return NextResponse.json({ error: "DOCUMENT NOT FOUND" }, { status: 400 });
+            return NextResponse.json({ error: "DOCUMENT NOT FOUND" }, { status: 404 });
         }
         if (document.extractedStatus === "PROCESSING") {
             return NextResponse.json({ error: "Extraction already in progress" }, { status: 409 });

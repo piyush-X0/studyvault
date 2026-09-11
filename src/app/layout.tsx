@@ -3,7 +3,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
 import { SessionProvider } from "next-auth/react"
 
 const geistSans = Geist({
@@ -21,7 +20,7 @@ export const metadata: Metadata = {
   description: "Chat with your documents",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="en"
@@ -37,7 +36,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="overflow-hidden h-screen w-screen flex flex-col">
         <SessionProvider>
-          {/* <Header /> */}
           <main className="flex-1 overflow-hidden">{children}</main>
         </SessionProvider>
       </body>

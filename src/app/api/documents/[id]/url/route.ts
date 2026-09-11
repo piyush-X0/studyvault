@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         });
 
         if (!documents) {
-            return NextResponse.json({ error: "Document not Found " }, { status: 400 });
+            return NextResponse.json({ error: "Document not Found " }, { status: 404 });
         }
 
         const safeFileName = encodeURIComponent(documents.fileName);

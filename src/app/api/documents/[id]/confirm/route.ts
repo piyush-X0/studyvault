@@ -6,7 +6,7 @@ import { BUCKET_NAME, r2Client } from "@/lib/r2";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 
     try {
         const { id } = await params;
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             id: true, uploadedStatus: true, r2Key: true
         });
         if (!documents) {
-            return NextResponse.json({ error: "Document not Found" }, { status: 400 });
+            return NextResponse.json({ error: "Document not Found" }, { status: 404 });
         }
         if (documents.uploadedStatus == "UPLOADED") {
             return NextResponse.json({ status: "UPLOADED" });

@@ -39,7 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
                 content: chunk.content,
                 chunkIndex: chunk.chunkIndex,
                 charCount: chunk.charCount
-            }))
+            })), skipDuplicates: true
         });
         return NextResponse.json({ status: "CHUNKED", chunkCount: chunks.length });
 
