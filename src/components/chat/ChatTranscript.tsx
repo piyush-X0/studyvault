@@ -23,16 +23,8 @@ export default function ChatTranscript({
     messages,
     isLoading = false,
     hasDocument = false,
-    onScrollStateChange,
-    onSampleClick,
 }: ChatTranscriptProps) {
     const containerRef = useRef<HTMLDivElement>(null);
-
-    const handleScroll = () => {
-        if (containerRef.current && onScrollStateChange) {
-            onScrollStateChange(containerRef.current.scrollTop > 10);
-        }
-    };
 
     useEffect(() => {
         if (containerRef.current) {
@@ -46,8 +38,8 @@ export default function ChatTranscript({
     return (
         <div
             ref={containerRef}
-            onScroll={handleScroll}
-            className="flex-1 overflow-y-auto px-4 py-8 md:px-8 space-y-6 scroll-smooth"
+            // onScroll={handleScroll}
+            className="flex-1 overflow-y-auto px-4 py-8 md:px-8  md:custom-scrollbar"
         >
             <AnimatePresence mode="wait">
                 {messages.length === 0 && !hasDocument ? (

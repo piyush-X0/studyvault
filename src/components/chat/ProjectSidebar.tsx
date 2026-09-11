@@ -162,7 +162,7 @@ export default function ProjectSidebar({
             placeholder="Search documents..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-lg border border-neutral-800 bg-[#141414] py-1.5 pl-8 pr-3 text-xs text-neutral-100 placeholder-neutral-500 transition-all focus:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+            className="w-full rounded-lg border border-neutral-800 bg-[#141414] py-1.5 pl-8 pr-3 text-xs text-neutral-100 placeholder-neutral-500 transition-all focus:bg-zinc-800 focus:outline-none "
           />
         </div>
       </div>

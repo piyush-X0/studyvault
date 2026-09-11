@@ -20,7 +20,7 @@ export default function Header({ onToggleMobileSidebar, isScrolled = false }: He
 
     return (
         <header
-            className={`relative z-40 w-full shrink-0 border-b transition-all duration-200 bg-[#0A0A0A]/95 backdrop-blur-md ${isScrolled
+            className={`relative w-full shrink-0 border-b transition-all duration-200 bg-[#0A0A0A]/95 backdrop-blur-md ${isScrolled
                 ? "border-neutral-800 shadow-md shadow-black/60"
                 : "border-neutral-800/80"
                 }`}

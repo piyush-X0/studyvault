@@ -141,11 +141,11 @@ export default function ChatComposer({
         setPendingFile(file);
     };
 
-    // const formatFileSize = (bytes: number) => {
-    //     if (bytes < 1024) return `${bytes} B`;
-    //     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    //     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    // };
+    const formatFileSize = (bytes: number) => {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
 
     const showAttachment = displayAttachmentName && !uploadStage ? true : !!displayAttachmentName;
 
@@ -248,11 +248,7 @@ export default function ChatComposer({
             />
 
             <div
-                className={`relative rounded-2xl border transition-all duration-200 bg-[#121212]/95 backdrop-blur-md ${isFocused
-                    ? "border-neutral-500 ring-1 ring-neutral-500 shadow-lg shadow-black/50"
-                    : "border-neutral-800"
-                    }`}
-            >
+                className="relative rounded-2xl border transition-all duration-200 bg-[#121212]/95 backdrop-blur-md hover:shadow-lg shadow-black/30" >
                 <AnimatePresence>
                     {showAttachment && displayAttachmentName && (
                         <motion.div

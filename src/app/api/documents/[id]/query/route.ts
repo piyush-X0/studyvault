@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
                         question,
                         relevantChunks.map((chunk) => chunk.content),
                         (text) => {
-                            controller.enqueue(encoder.encode(text));
+                            controller.enqueue(encoder.encode(JSON.stringify({ type: "error", message: text })));
                         },
                     );
                 } catch (error) {
