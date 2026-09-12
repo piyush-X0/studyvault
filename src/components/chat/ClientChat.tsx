@@ -35,9 +35,11 @@ export default function ClientChat() {
     const [uploadStage, setUploadStage] = useState<UploadStage>("idle");
     const [uploadedDocId, setUploadedDocId] = useState<string | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const [messagesLoading, setMessagesLoading] = useState(false);
 
-    const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
+    const pollingRef = useRef<number | null>(null);
+    const pollingTimeoutRef = useRef<number | null>(null);
+    const uploadCancelledRef = useRef(false);
 
     const refreshDocuments = useCallback(async () => {
         try {
@@ -54,9 +56,7 @@ export default function ClientChat() {
         void refreshDocuments();
 
         return () => {
-            if (pollingRef.current) {
-                clearInterval(pollingRef.current);
-            }
+            stopPolling();
         };
     }, [refreshDocuments]);
 
@@ -68,29 +68,49 @@ export default function ClientChat() {
     function startPolling(documentId: string) {
         stopPolling();
 
-        pollingRef.current = setInterval(async () => {
+        let stopped = false;
+
+        const poll = async () => {
+            if (stopped) {
+                return;
+            }
+
             try {
                 const nextDocuments = await fetchDocuments();
+
+                if (stopped) {
+                    return;
+                }
+
                 const document = nextDocuments.find(
                     (item) => item.id === documentId,
                 );
 
                 if (!document) {
+                    pollingRef.current = window.setTimeout(poll, 3000);
                     return;
                 }
 
                 if (document.embeddingStatus === "EMBEDDED") {
+                    stopped = true;
                     stopPolling();
 
-                    // Add to sidebar only now.
                     setDocuments(nextDocuments);
-
                     setActiveDocId(documentId);
                     setUploadedDocId(documentId);
                     setUploadStage("ready");
                     setPendingFile(null);
+                    setMessagesLoading(true);
 
-                    setMessages(await fetchMessages(documentId));
+                    try {
+                        const previousMessages = await fetchMessages(documentId);
+                        setMessages(previousMessages);
+                    } catch (error) {
+                        console.error("Failed to load uploaded document messages:", error);
+                        setMessages([]);
+                    } finally {
+                        setMessagesLoading(false);
+                    }
                     return;
                 }
 
@@ -98,8 +118,10 @@ export default function ClientChat() {
                     document.embeddingStatus === "FAILED" ||
                     document.extractedStatus === "FAILED"
                 ) {
+                    stopped = true;
                     stopPolling();
 
+                    setDocuments(nextDocuments);
                     setUploadStage("failed");
                     setUploadedDocId(null);
 
@@ -111,20 +133,41 @@ export default function ClientChat() {
                     setUploadError(reason);
                     return;
                 }
+
+                pollingRef.current = window.setTimeout(poll, 3000);
             } catch (error) {
                 console.error("Document polling failed:", error);
 
+                stopped = true;
                 stopPolling();
+
                 setUploadStage("failed");
                 setUploadError("Could not check document processing status.");
             }
-        }, 3000);
+        };
+
+        pollingTimeoutRef.current = window.setTimeout(() => {
+            stopped = true;
+            stopPolling();
+
+            setUploadStage("failed");
+            setUploadError(
+                "Document processing timed out. Please try uploading the file again.",
+            );
+        }, 120_000);
+
+        void poll();
     }
 
     function stopPolling() {
-        if (pollingRef.current) {
-            clearInterval(pollingRef.current);
+        if (pollingRef.current !== null) {
+            window.clearTimeout(pollingRef.current);
             pollingRef.current = null;
+        }
+
+        if (pollingTimeoutRef.current !== null) {
+            window.clearTimeout(pollingTimeoutRef.current);
+            pollingTimeoutRef.current = null;
         }
     }
     const MAX_EXTRACTED_CHARS = 50_000;
@@ -137,6 +180,7 @@ export default function ClientChat() {
         return text.length > MAX_EXTRACTED_CHARS;
     }
     async function handlePickFile(file: File) {
+        uploadCancelledRef.current = false;
         setUploadError(null);
         if (file.size > MAX_UPLOAD_BYTES) {
             showUploadError("File too large. Maximum size is 1 MB.");
@@ -167,7 +211,18 @@ export default function ClientChat() {
 
         try {
             const documentId = await uploadDocument(file);
+            if (uploadCancelledRef.current) {
+                try {
+                    await deleteDocument(documentId);
+                } catch (error) {
+                    console.error(
+                        "Failed to delete cancelled upload:",
+                        error,
+                    );
+                }
 
+                return;
+            }
             setUploadedDocId(documentId);
             setActiveDocId(documentId);
             setUploadStage("processing");
@@ -192,9 +247,9 @@ export default function ClientChat() {
 
         setActiveDocId(documentId);
         setMessages([]);
+        setMessagesLoading(true);
         setIsMobileSidebarOpen(false);
 
-        // This is an existing document selection, not a new upload.
         setPendingFile(null);
         setUploadedDocId(null);
         setUploadedFileName(null);
@@ -207,6 +262,8 @@ export default function ClientChat() {
         } catch (error) {
             console.error("Failed to load messages:", error);
             showUploadError("Could not load this document's conversation.");
+        } finally {
+            setMessagesLoading(false);
         }
     }
     async function handleDelete(documentId: string) {
@@ -226,6 +283,7 @@ export default function ClientChat() {
         if (activeDocId === documentId) {
             setActiveDocId(null);
             setMessages([]);
+            setMessagesLoading(false);
         }
 
         if (uploadedDocId === documentId) {
@@ -266,6 +324,7 @@ export default function ClientChat() {
         stopPolling();
         setActiveDocId(null);
         setMessages([]);
+        setMessagesLoading(false);
         setInput("");
         setPendingFile(null);
         setUploadedDocId(null);
@@ -275,6 +334,8 @@ export default function ClientChat() {
     }
 
     async function handleClearAttachment() {
+        uploadCancelledRef.current = true;
+
         if (uploadedDocId) {
             await handleDelete(uploadedDocId);
         }
@@ -283,6 +344,7 @@ export default function ClientChat() {
         setUploadedDocId(null);
         setUploadedFileName(null);
         setUploadStage("idle");
+        setUploadError(null);
     }
 
     async function handleSubmit() {
@@ -376,7 +438,6 @@ export default function ClientChat() {
             );
         } finally {
             setAsking(false);
-            setUploadedFileName(null);
         }
     }
 
@@ -410,6 +471,7 @@ export default function ClientChat() {
                             content: message.text,
                         }))}
                         isLoading={asking}
+                        isMessagesLoading={messagesLoading}
                         hasDocument={Boolean(activeDocId)}
                         onScrollStateChange={setIsScrolled}
                     />
@@ -420,7 +482,9 @@ export default function ClientChat() {
                         onSubmit={handleSubmit}
                         onPickFile={handlePickFile}
                         onClearAttachment={handleClearAttachment}
-                        attachmentName={uploadedFileName ?? pendingFile?.name ?? null}
+                        attachmentName={uploadedFileName ??
+                            pendingFile?.name ??
+                            null}
                         selectedDocName={activeDocument?.fileName}
                         uploadStage={uploadStage}
                         uploadError={uploadError}

@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import ClientChat from "@/components/chat/ClientChat";
 import { redirect } from "next/navigation";
 
 export default async function ChatPage() {
@@ -7,5 +8,5 @@ export default async function ChatPage() {
     if (!session?.user?.id) {
         redirect("/signin")
     }
-    return <ChatPage />;
+    return <ClientChat />;
 }
