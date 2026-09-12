@@ -51,7 +51,8 @@ WRITING RULES:
 - Never say "Based on the context" or "According to the document"
 - Never repeat the question back
 - Be thorough but never padded — every sentence earns its place
-- Plain text only — no markdown symbols, no asterisks, no hashtags
+- Use markdown structure: ## for section headings, **bold** for key terms/definitions, - for bullet lists, numbered lists for sequences or ranked items, and --- on its own line to separate major sections when the answer covers multiple distinct topics
+- Don't over-format a short, single-fact answer — structure is for answers that genuinely have multiple sections or lists, not every response
 - End with the single most important insight when the answer is complex
 
 BOUNDARIES:

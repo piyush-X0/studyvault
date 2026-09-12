@@ -2,10 +2,13 @@
 
 import { useRef, useEffect } from "react";
 import {
-    Sparkles, Bot, User, Zap, Database, Lock, Cpu, FileQuestion,
-    CheckCircle2
+    FileQuestion
 } from "lucide-react";
+
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { markdownComponents } from "./MarkdownComponents";
 
 export interface MessageItem {
     id: string;
@@ -80,7 +83,7 @@ export default function ChatTranscript({
                             {/* Existing initial empty-state content */}
                         </motion.div>
                     ) : (
-                        <div className="mx-auto max-w-3xl space-y-6">
+                        <div className="mx-auto max-w-182 space-y-6">
                             {messages.map((msg) => {
                                 const isUser = msg.role === "user";
 
@@ -95,7 +98,7 @@ export default function ChatTranscript({
                                             : "justify-start"
                                             }`}
                                     >
-                                        {!isUser}
+
 
                                         <div
                                             className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${isUser
@@ -104,15 +107,11 @@ export default function ChatTranscript({
                                                 }`}
                                         >
                                             <div className="whitespace-pre-wrap">
-                                                {msg.content}
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                    {msg.content}
+                                                </ReactMarkdown>
                                             </div>
                                         </div>
-
-                                        {isUser && (
-                                            <div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-xl bg-neutral-800 text-neutral-200">
-                                                <User className="h-4 w-4" />
-                                            </div>
-                                        )}
                                     </motion.div>
                                 );
                             })}

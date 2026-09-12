@@ -296,7 +296,7 @@ export default function ChatComposer({
                                 )}
 
                                 {uploadStage !== "failed" && uploadStage !== "ready" && (
-                                    <span className="relative h-2 w-10 overflow-hidden rounded-full bg-neutral-800">
+                                    <span className="relative h-2 w-10 overflow-hidden scrollbar-none rounded-full bg-neutral-800">
                                         <span className="absolute inset-y-0 left-0 w-1/2 animate-[shimmer_1.4s_ease-in-out_infinite] rounded-full bg-white/40 blur-sm" />
                                     </span>
                                 )}
