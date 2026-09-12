@@ -1,18 +1,13 @@
 import { PrismaClient } from "@/generated/prisma/client"
-import { Pool } from "pg"
-import { PrismaPg } from "@prisma/adapter-pg"
+import { PrismaNeon } from "@prisma/adapter-neon"
 
 const globalForPrisma = global as typeof globalThis & { prisma?: PrismaClient }
 
 const singletonPrisma = () => {
-    const pool = new Pool({
+    const adapter = new PrismaNeon({
         connectionString: process.env.DATABASE_URL,
-        max: 10,
-        connectionTimeoutMillis: 5000,
-        idleTimeoutMillis: 30000,
     })
-    pool.on("error", (err) => console.error("pg pool error:", err))
-    const adapter = new PrismaPg(pool)
+
     return new PrismaClient({ adapter })
 }
 
