@@ -31,12 +31,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         if (document.embeddingStatus !== "EMBEDDED") {
             return NextResponse.json({ error: "Document is not ready for query yet" }, { status: 409 });
         }
-
+        const MAX_CHATS_PER_DOCUMENT = 2;
         const chatCount = await prisma.messages.count({
             where: { documentId: id, role: "user" },
         });
-        if (chatCount >= 3) {
-            return NextResponse.json({ error: "Chat limit reached for this file (max 2)..." }, { status: 403 });
+        if (chatCount >= MAX_CHATS_PER_DOCUMENT) {
+            return NextResponse.json(
+                { error: "You've reached the chat limit for this file (max 2 questions).", code: "CHAT_LIMIT_REACHED" },
+                { status: 403 },
+            );
         }
         const [questionvector] = await generateEmbeddings([question]);
         const relevantChunks = await findRelevantChunks(id, questionvector, 5);

@@ -30,6 +30,7 @@ export interface ChatMessage {
     role: "user" | "assistant";
     text: string;
     fileName?: string;
+    isNotice?: boolean;
 }
 
 export type UploadStage = "idle" | "uploading" | "processing" | "ready" | "failed";
@@ -134,6 +135,14 @@ export async function uploadDocument(file: File): Promise<string> {
     return documentId as string;
 }
 
+export class ChatApiError extends Error {
+    code?: string;
+    constructor(message: string, code?: string) {
+        super(message);
+        this.code = code;
+    }
+}
+
 export async function streamAnswer(
     docId: string,
     question: string,
@@ -149,10 +158,9 @@ export async function streamAnswer(
 
     if (!res.ok) {
         const data = await res.json().catch(() => null);
-
-        throw new Error(
-            data?.error ??
-            `Unable to generate an answer (HTTP ${res.status}).`,
+        throw new ChatApiError(
+            data?.error ?? `Unable to generate an answer (HTTP ${res.status}).`,
+            data?.code,
         );
     }
 

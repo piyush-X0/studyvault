@@ -9,6 +9,7 @@ import { uploadBodySchema } from "@/lib/schemas/upload";
 import { auth } from "@/auth";
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024;
+const MAX_FILE_PER_USER = 5;
 const ALLOWED_TYPES = new Set([
     "application/pdf",
     "text/plain",
@@ -26,8 +27,8 @@ export async function POST(req: NextRequest) {
         const raw = await req.json();
         const { fileName, contentType, size } = parseJsonBody(raw, uploadBodySchema);
         const fileCount = await prisma.document.count({ where: { userId: session.user.id } });
-        if (fileCount >= 4) {
-            return NextResponse.json({ error: "File limit reached (max 4 per account)" }, { status: 403 });
+        if (fileCount >= MAX_FILE_PER_USER) {
+            return NextResponse.json({ error: "File limit reached (max 5 per account)" }, { status: 403 });
         }
 
         if (!fileName || !contentType || typeof size !== "number" || Number.isNaN(size)) {

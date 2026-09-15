@@ -30,6 +30,8 @@ interface ChatComposerProps {
     disabled?: boolean;
     placeholder?: string;
     selectedDocName?: string;
+    blockSend?: boolean;
+    fileLimitReached?: boolean;
 }
 
 export default function ChatComposer({
@@ -46,7 +48,9 @@ export default function ChatComposer({
     isLoading = false,
     disabled = false,
     placeholder = "Ask anything about your document...",
+    fileLimitReached = false,
     selectedDocName,
+    blockSend = false
 }: ChatComposerProps) {
     const [internalInput, setInternalInput] = useState("");
     const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -80,7 +84,7 @@ export default function ChatComposer({
 
     const handleSend = () => {
         const trimmed = inputValue.trim();
-        if (uploadInProgress || uploadFailed || isLoading || disabled) {
+        if (uploadInProgress || uploadFailed || isLoading || disabled || blockSend) {
             return;
         }
 
@@ -335,14 +339,20 @@ export default function ChatComposer({
                     <div className="flex items-center gap-2">
                         <motion.button
                             type="button"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => fileInputRef.current?.click()}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-800 bg-[#1A1A1A] px-2.5 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:border-neutral-700 hover:bg-[#222222] hover:text-white"
-                            title="Attach document (.pdf, .txt, .docx)"
+                            whileHover={{ scale: fileLimitReached ? 1 : 1.05 }}
+                            whileTap={{ scale: fileLimitReached ? 1 : 0.95 }}
+                            onClick={() => !fileLimitReached && fileInputRef.current?.click()}
+                            disabled={fileLimitReached}
+                            className={[
+                                "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors",
+                                fileLimitReached
+                                    ? "cursor-not-allowed border-red-900/40 bg-red-950/20 text-red-400/70"
+                                    : "border-neutral-800 bg-[#1A1A1A] text-neutral-300 hover:border-neutral-700 hover:bg-[#222222] hover:text-white",
+                            ].join(" ")}
+                            title={fileLimitReached ? "File limit reached (max 5) — delete a document to upload another" : "Attach document (.pdf, .txt, .docx)"}
                         >
-                            <Plus className="h-3.5 w-3.5 text-emerald-400" />
-                            <span>Attach document</span>
+                            <Plus className={`h-3.5 w-3.5 ${fileLimitReached ? "text-red-400/70" : "text-emerald-400"}`} />
+                            <span>{fileLimitReached ? "File limit reached (max 5)" : "Attach document"}</span>
                         </motion.button>
 
                         <span className="text-[11px] text-neutral-500 hidden sm:inline-block">
@@ -353,7 +363,7 @@ export default function ChatComposer({
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        disabled={(!inputValue.trim() && !pendingFile && !displayAttachmentName) || isLoading || disabled || uploadInProgress}
+                        disabled={(!inputValue.trim() && !pendingFile && !displayAttachmentName) || isLoading || disabled || uploadInProgress || blockSend}
                         onClick={handleSend}
                         className={[
                             "inline-flex h-8 w-8 items-center justify-center rounded-lg transition-all",

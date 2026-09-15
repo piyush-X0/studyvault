@@ -17,6 +17,7 @@ export interface MessageItem {
     fileName?: string;
     content: string;
     createdAt?: string;
+    isNotice?: boolean;
 }
 
 interface ChatTranscriptProps {
@@ -36,6 +37,31 @@ export default function ChatTranscript({
 }: ChatTranscriptProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const LOADING_MESSAGES = [
+        { after: 0, text: "Searching relevant context..." },
+        { after: 3000, text: "Preparing your answer..." },
+        { after: 6000, text: "Synthesizing a response..." },
+        { after: 9000, text: "Almost there, polishing the answer..." },
+        { after: 12000, text: "Taking a bit longer than usual — still working on it..." },
+    ];
+
+    const [loadingText, setLoadingText] = useState(LOADING_MESSAGES[0].text);
+
+    useEffect(() => {
+        if (!isLoading) {
+            setLoadingText(LOADING_MESSAGES[0].text);
+            return;
+        }
+
+        const startedAt = Date.now();
+        const interval = window.setInterval(() => {
+            const elapsed = Date.now() - startedAt;
+            const current = [...LOADING_MESSAGES].reverse().find((m) => elapsed >= m.after);
+            setLoadingText(current?.text ?? LOADING_MESSAGES[0].text);
+        }, 500);
+
+        return () => window.clearInterval(interval);
+    }, [isLoading]);
     async function handleCopy(id: string, content: string) {
         try {
             await navigator.clipboard.writeText(content);
@@ -205,32 +231,47 @@ export default function ChatTranscript({
                                 className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}
                             >
                                 {isUser && msg.fileName && (
-                                    <div className="flex items-center gap-1 px-2   max-w-32 text-[11px] bg-[#171717]  border rounded-2xl py-4 text-neutral-500">
-                                        <span> <FileText className="h-4 w-5 " />  {msg.fileName} </span>
+                                    <span className="flex items-center gap-1 px-1 text-[11px] text-neutral-500">
+                                        <FileText className="h-3 w-3" />
+                                        {msg.fileName}
+                                    </span>
+                                )}
 
+                                {isUser ? (
+                                    <div className="max-w-[85%] rounded-2xl bg-[#171717] px-4 py-3 text-sm leading-relaxed text-zinc-200 shadow-sm sm:max-w-[80%]">
+                                        <div className="whitespace-pre-wrap">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                {msg.content}
+                                            </ReactMarkdown>
+                                        </div>
+                                    </div>
+                                ) : msg.isNotice ? (
+                                    <p className="px-2 text-center text-xs text-neutral-500 italic">
+                                        {msg.content}
+                                    </p>
+                                ) : (
+                                    <div className="max-w-[95%] rounded-2xl px-4 py-3 text-sm leading-relaxed text-neutral-200 sm:max-w-full">
+                                        <div className="whitespace-pre-wrap">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                {msg.content}
+                                            </ReactMarkdown>
+                                        </div>
                                     </div>
                                 )}
 
-                                <div
-                                    className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${isUser
-                                        ? "max-w-[85%] bg-[#171717] text-zinc-200 shadow-sm sm:max-w-[80%]"
-                                        : "max-w-[95%] text-neutral-200 sm:max-w-full"
-                                        }`}
-                                >
-                                    <div className="whitespace-pre-wrap">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                                            {msg.content}
-                                        </ReactMarkdown>
-                                    </div>
-                                </div>
-                                {isUser && msg.content && (
-                                    <button type="button"
+                                {isUser && (
+                                    <button
+                                        type="button"
                                         onClick={() => handleCopy(msg.id, msg.content)}
                                         className="flex items-center gap-1 px-1 text-[11px] text-neutral-500 transition-colors hover:text-neutral-300"
-                                        title="Copy response">
+                                        title="Copy question"
+                                    >
                                         {copiedId === msg.id ? (
                                             <>
-                                                <Check className="h-3 w-3" /> Copied</>) : (
+                                                <Check className="h-3 w-3" />
+                                                Copied
+                                            </>
+                                        ) : (
                                             <Copy className="h-3 w-3" />
                                         )}
                                     </button>
@@ -251,7 +292,7 @@ export default function ChatTranscript({
                                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neutral-400 [animation-delay:400ms]" />
                             </div>
 
-                            <span>Synthesizing answer from chunks...</span>
+                            <span>{loadingText}</span>
                         </motion.div>
                     )}
                 </div>
