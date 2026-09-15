@@ -191,6 +191,10 @@ export default function ClientChat() {
             showUploadError("Unsupported file type. Use PDF, DOCX, TXT, or Markdown.");
             return;
         }
+        if (documents.some((doc) => doc.fileName === file.name)) {
+            showUploadError("A file with this name already exists.");
+            return;
+        }
         try {
             if (await TooMuchPlainText(file)) {
                 setUploadedFileName(null);

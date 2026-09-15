@@ -27,10 +27,16 @@ export async function POST(req: NextRequest) {
         const raw = await req.json();
         const { fileName, contentType, size } = parseJsonBody(raw, uploadBodySchema);
         const fileCount = await prisma.document.count({ where: { userId: session.user.id } });
+        const existingNames = await prisma.document.findMany({
+            where: { userId: session.user.id },
+            select: { fileName: true }
+        });
         if (fileCount >= MAX_FILE_PER_USER) {
             return NextResponse.json({ error: "File limit reached (max 5 per account)" }, { status: 403 });
         }
-
+        if (existingNames.some(({ fileName: existingName }) => existingName === fileName)) {
+            return NextResponse.json({ error: "A file with this name already exists" }, { status: 409 });
+        }
         if (!fileName || !contentType || typeof size !== "number" || Number.isNaN(size)) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 })
         }
@@ -40,6 +46,7 @@ export async function POST(req: NextRequest) {
         if (size > MAX_FILE_SIZE) {
             return NextResponse.json({ error: "File too large. Maximum size is 1MB" }, { status: 400 });
         }
+
         const r2Key = `${session.user.id}/${randomUUID()}-${fileName}`
         const command = new PutObjectCommand({
             Bucket: BUCKET_NAME,
