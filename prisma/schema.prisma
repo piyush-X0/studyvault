@@ -65,7 +65,7 @@ model DocumentChunks {
   content    String                       @db.Text
   chunkIndex Int
   charCount  Int
-  embedding  Unsupported("vector(1536)")?
+  embedding  Unsupported("vector(384)")?
   createdAt  DateTime                     @default(now())
 
   @@unique([documentId, chunkIndex])
