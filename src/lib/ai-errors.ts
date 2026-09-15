@@ -12,7 +12,7 @@ export function getAiErrorMessage(error: unknown): string {
     }
 
     if (
-        normalized.includes("429") ||
+        normalized.includes("rate_limit_exceeded") ||
         normalized.includes("resource_exhausted") ||
         normalized.includes("quota")
     ) {

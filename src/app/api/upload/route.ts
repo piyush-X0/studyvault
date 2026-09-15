@@ -25,8 +25,12 @@ export async function POST(req: NextRequest) {
     try {
         const raw = await req.json();
         const { fileName, contentType, size } = parseJsonBody(raw, uploadBodySchema);
+        const fileCount = await prisma.document.count({ where: { userId: session.user.id } });
+        if (fileCount >= 4) {
+            return NextResponse.json({ error: "File limit reached (max 4 per account)" }, { status: 403 });
+        }
 
-        if (!fileName || !contentType || !size === undefined) {
+        if (!fileName || !contentType || typeof size !== "number" || Number.isNaN(size)) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 })
         }
         if (!ALLOWED_TYPES.has(contentType)) {

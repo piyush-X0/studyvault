@@ -7,6 +7,7 @@ import { findRelevantChunks } from "@/lib/search";
 import { parseJsonBody } from "@/lib/validation";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -31,6 +32,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             return NextResponse.json({ error: "Document is not ready for query yet" }, { status: 409 });
         }
 
+        const chatCount = await prisma.messages.count({
+            where: { documentId: id, role: "user" },
+        });
+        if (chatCount >= 3) {
+            return NextResponse.json({ error: "Chat limit reached for this file (max 2)..." }, { status: 403 });
+        }
         const [questionvector] = await generateEmbeddings([question]);
         const relevantChunks = await findRelevantChunks(id, questionvector, 5);
 
