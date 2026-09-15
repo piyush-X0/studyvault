@@ -36,12 +36,12 @@ export const markdownComponents = {
         </a>
     ),
     ul: ({ children }: any) => (
-        <ul className="mb-3 ml-4 list-disc space-y-1 text-neutral-200 last:mb-0">
+        <ul className="mb-3 ml-4 list-disc space-y-1 text-neutral-200 last:mb-0 [&_ul]:mb-0 [&_ol]:mb-0 [&_ul]:mt-1 [&_ol]:mt-1">
             {children}
         </ul>
     ),
     ol: ({ children }: any) => (
-        <ol className="mb-3 ml-4 list-decimal space-y-1 text-neutral-200 last:mb-0">
+        <ol className="mb-3 ml-4 list-decimal space-y-1 text-neutral-200 last:mb-0 [&_ul]:mb-0 [&_ol]:mb-0 [&_ul]:mt-1 [&_ol]:mt-1">
             {children}
         </ol>
     ),
