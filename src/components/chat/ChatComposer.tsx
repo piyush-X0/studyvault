@@ -353,7 +353,7 @@ export default function ChatComposer({
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        disabled={(!inputValue.trim() && !pendingFile && !displayAttachmentName) || isLoading || disabled}
+                        disabled={(!inputValue.trim() && !pendingFile && !displayAttachmentName) || isLoading || disabled || uploadInProgress}
                         onClick={handleSend}
                         className={[
                             "inline-flex h-8 w-8 items-center justify-center rounded-lg transition-all",

@@ -388,6 +388,9 @@ export default function ClientChat() {
         ]);
 
         setInput("");
+        if (currentFileName) {
+            setUploadedFileName(null);
+        }
         setAsking(true);
 
         try {
@@ -490,9 +493,8 @@ export default function ClientChat() {
                         uploadError={uploadError}
                         disabled={
                             asking ||
-                            documentsLoading ||
-                            uploadStage === "uploading" ||
-                            uploadStage === "processing"
+                            documentsLoading
+
                         }
                     />
                 </main>

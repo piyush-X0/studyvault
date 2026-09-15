@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import {
-    FileQuestion, Zap, Sparkles, Database, Lock, CheckCircle2, Bot, User
+    FileQuestion, Zap, Sparkles, Database, Lock, CheckCircle2, Copy, Check,
+    FileText
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,6 +14,7 @@ import { markdownComponents } from "./MarkdownComponents";
 export interface MessageItem {
     id: string;
     role: "user" | "assistant";
+    fileName?: string;
     content: string;
     createdAt?: string;
 }
@@ -33,7 +35,16 @@ export default function ChatTranscript({
     hasDocument = false,
 }: ChatTranscriptProps) {
     const containerRef = useRef<HTMLDivElement>(null);
-
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+    async function handleCopy(id: string, content: string) {
+        try {
+            await navigator.clipboard.writeText(content);
+            setCopiedId(id);
+            window.setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 1500);
+        } catch (error) {
+            console.error("Copy failed:", error);
+        }
+    }
     useEffect(() => {
         if (containerRef.current) {
             containerRef.current.scrollTo({
@@ -43,102 +54,6 @@ export default function ChatTranscript({
         }
     }, [messages, isLoading]);
 
-    // return (
-    //     <div
-    //         ref={containerRef}
-    //         className="min-h-0 flex-1 overflow-y-auto custom-scrollbar px-4 py-6"
-    //     >
-    // {isMessagesLoading ? (
-    //     <div className="flex min-h-full items-center justify-center px-6 py-12">
-    //         <div className="text-sm text-neutral-500">
-    //             Loading conversation...
-    //         </div>
-    //     </div>
-    // ) : hasDocument && messages.length === 0 ? (
-    //     <div className="flex min-h-full items-center justify-center px-6 py-12">
-    //         <div className="flex max-w-md flex-col items-center text-center">
-    //             <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-neutral-800 bg-neutral-900/80 shadow-lg shadow-black/20">
-    //                 <FileQuestion className="h-6 w-6 text-neutral-400" />
-    //             </div>
-
-    //             <h2 className="text-lg font-medium text-neutral-100">
-    //                 No conversation yet
-    //             </h2>
-
-    //             <p className="mt-2 text-sm leading-6 text-neutral-500">
-    //                 Ask anything about this document to start a conversation.
-    //             </p>
-    //         </div>
-    //     </div>
-    // ) : (
-    //     <AnimatePresence mode="wait">
-    //         {messages.length === 0 && !hasDocument ? (
-    //             <motion.div
-    //                 initial={{ opacity: 0, y: 15 }}
-    //                 animate={{ opacity: 1, y: 0 }}
-    //                 exit={{ opacity: 0, scale: 0.98 }}
-    //                 transition={{ duration: 0.3 }}
-    //                 className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center space-y-7 text-center pointer-events-none select-none"
-    //             >
-    //                 {/* Existing initial empty-state content */}
-    //             </motion.div>
-    //         ) : (
-    //             <div className="mx-auto max-w-182 space-y-6">
-    //                 {messages.map((msg) => {
-    //                     const isUser = msg.role === "user";
-
-    //                     return (
-    //                         <motion.div
-    //                             key={msg.id}
-    //                             initial={{ opacity: 0, y: 8 }}
-    //                             animate={{ opacity: 1, y: 0 }}
-    //                             transition={{ duration: 0.2 }}
-    //                             className={`flex gap-3 sm:gap-4 ${isUser
-    //                                 ? "justify-end"
-    //                                 : "justify-start"
-    //                                 }`}
-    //                         >
-
-
-    //                             <div
-    //                                 className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${isUser
-    //                                     ? "max-w-[85%] bg-[#171717] font-medium text-zinc-200 shadow-sm sm:max-w-[%]"
-    //                                     : "max-w-[95%] text-neutral-200 sm:max-w-[85%]"
-    //                                     }`}
-    //                             >
-    //                                 <div className="whitespace-pre-wrap">
-    //                                     <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-    //                                         {msg.content}
-    //                                     </ReactMarkdown>
-    //                                 </div>
-    //                             </div>
-    //                         </motion.div>
-    //                     );
-    //                 })}
-
-    //                 {isLoading && (
-    //                     <motion.div
-    //                         initial={{ opacity: 0 }}
-    //                         animate={{ opacity: 1 }}
-    //                         className="flex items-center gap-3 pl-12 text-xs text-neutral-400"
-    //                     >
-    //                         <div className="flex gap-1">
-    //                             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neutral-400" />
-    //                             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neutral-400 [animation-delay:200ms]" />
-    //                             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neutral-400 [animation-delay:400ms]" />
-    //                         </div>
-
-    //                         <span>
-    //                             Synthesizing answer from chunks...
-    //                         </span>
-    //                     </motion.div>
-    //                 )}
-    //             </div>
-    //         )}
-    //     </AnimatePresence>
-    // )}
-    //     </div>
-    // )
     return (
         <div
             ref={containerRef}
@@ -287,9 +202,14 @@ export default function ChatTranscript({
                                 initial={{ opacity: 0, y: 8 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.2 }}
-                                className={`flex gap-2 sm:gap-4 ${isUser ? "justify-end" : "justify-start"
-                                    }`}
+                                className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}
                             >
+                                {isUser && msg.fileName && (
+                                    <div className="flex items-center gap-1 px-2   max-w-32 text-[11px] bg-[#171717]  border rounded-2xl py-4 text-neutral-500">
+                                        <span> <FileText className="h-4 w-5 " />  {msg.fileName} </span>
+
+                                    </div>
+                                )}
 
                                 <div
                                     className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${isUser
@@ -303,6 +223,18 @@ export default function ChatTranscript({
                                         </ReactMarkdown>
                                     </div>
                                 </div>
+                                {isUser && msg.content && (
+                                    <button type="button"
+                                        onClick={() => handleCopy(msg.id, msg.content)}
+                                        className="flex items-center gap-1 px-1 text-[11px] text-neutral-500 transition-colors hover:text-neutral-300"
+                                        title="Copy response">
+                                        {copiedId === msg.id ? (
+                                            <>
+                                                <Check className="h-3 w-3" /> Copied</>) : (
+                                            <Copy className="h-3 w-3" />
+                                        )}
+                                    </button>
+                                )}
                             </motion.div>
                         );
                     })}
