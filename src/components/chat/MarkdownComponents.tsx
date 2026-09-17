@@ -45,7 +45,7 @@ export const markdownComponents = {
             {children}
         </ol>
     ),
-    li: ({ children }: any) => <li className="pl-1 leading-6">{children}</li>,
+    li: ({ children }: any) => <li className="pl-1 leading-6 [&>p]:mb-1 [&>p]:last:mb-0">{children}</li>,
     blockquote: ({ children }: any) => (
         <blockquote className="mb-3 border-l-2 border-neutral-700 pl-3 text-neutral-400 italic last:mb-0">
             {children}
