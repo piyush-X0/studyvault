@@ -50,22 +50,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         if (!session?.user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-        const document = await getDocumentForUser(id, session.user.id, { id: true });
-
-        if (!document) {
-            return NextResponse.json({ error: "Not Found " }, { status: 404 });
-        }
 
         const messages = await prisma.messages.findMany({
             where: { documentId: id },
             orderBy: { createdAt: "asc" },
             select: { id: true, role: true, text: true, fileName: true, createdAt: true }
         });
-
+        if (messages.length === 0) {
+            const document = await getDocumentForUser(id, session.user.id, { id: true });
+            if (!document) {
+                return NextResponse.json({ error: "Not Found" }, { status: 404 });
+            }
+        }
         return NextResponse.json({ messages });
-
     } catch (error) {
-        console.error("message deletion failed : ", error)
+        console.error("message fetch failed : ", error)
         return NextResponse.json({ error: "Internal Server error" }, { status: 500 });
     }
 }

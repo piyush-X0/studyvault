@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { BUCKET_NAME, r2Client } from "@/lib/r2";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 
@@ -36,17 +37,21 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
             });
             return NextResponse.json({ error: "file is not found in storage", status: "FAILED" }, { status: 422 });
         }
+
         await prisma.document.update({
             where: { id },
             data: { uploadedStatus: "UPLOADED" }
         });
 
-        try {
-            await runPipeline(id)
-        }
-        catch (error) {
-            console.error(`[pipeline] failed for document ${id}:`, error);
-        }
+        after(async () => {
+            try {
+                await runPipeline(id)
+            }
+            catch (error) {
+                console.error(`[pipeline] failed for document ${id}:`, error);
+            }
+        })
+
         return NextResponse.json({
             status: "UPLOADED", message: "Pipeline Started"
         });
