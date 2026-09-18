@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import {
     FileQuestion, Zap, Sparkles, Database, Lock, CheckCircle2, Copy, Check,
-    FileText
+    FileText, RotateCcw
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,8 +16,9 @@ export interface MessageItem {
     role: "user" | "assistant";
     fileName?: string;
     content: string;
-    createdAt?: string;
     isNotice?: boolean;
+    isError?: boolean;
+    createdAt?: string;
 }
 
 interface ChatTranscriptProps {
@@ -27,6 +28,8 @@ interface ChatTranscriptProps {
     isMessagesLoading?: boolean;
     onScrollStateChange?: (isScrolled: boolean) => void;
     onSampleClick?: (prompt: string) => void;
+    onRetry?: (id: string) => void;
+    chatLimitReached?: boolean;
 }
 
 export default function ChatTranscript({
@@ -34,6 +37,8 @@ export default function ChatTranscript({
     isLoading = false,
     isMessagesLoading = false,
     hasDocument = false,
+    onRetry,
+    chatLimitReached,
 }: ChatTranscriptProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -259,6 +264,19 @@ export default function ChatTranscript({
                                     </div>
                                 )}
 
+                                {!isUser && !msg.isNotice && onRetry && !isLoading && (
+                                    <button
+                                        type="button"
+                                        onClick={() => !chatLimitReached && onRetry(msg.id)}
+                                        disabled={isLoading || chatLimitReached}
+                                        className="flex items-center gap-1 px-1 text-[11px] text-neutral-500 transition-colors hover:text-neutral-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-neutral-500"
+                                        title={chatLimitReached ? "You've exhausted your chat limit for this file" : "Retry"}
+                                    >
+                                        <RotateCcw className="h-3 w-3" />
+                                        Retry
+                                    </button>
+                                )}
+
                                 {isUser && (
                                     <button
                                         type="button"
@@ -279,7 +297,6 @@ export default function ChatTranscript({
                             </motion.div>
                         );
                     })}
-
                     {isLoading && (
                         <motion.div
                             initial={{ opacity: 0 }}

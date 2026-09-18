@@ -37,17 +37,18 @@ export default function ClientChat() {
     const [uploadedDocId, setUploadedDocId] = useState<string | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [messagesLoading, setMessagesLoading] = useState(false);
-    const [chatLimitReached, setChatLimitReached] = useState(false);
     const pollingRef = useRef<number | null>(null);
     const pollingTimeoutRef = useRef<number | null>(null);
     const uploadCancelledRef = useRef(false);
-
+    const activeDocument = documents.find(
+        (document) => document.id === activeDocId,
+    );
+    const chatLimitReached = messages.filter((m) => m.role === "user").length >= 2;
     const refreshDocuments = useCallback(async () => {
         try {
             const nextDocuments = await fetchDocuments();
             setDocuments(nextDocuments);
         } catch (error) {
-            console.error("Failed to fetch documents:", error);
         } finally {
             setDocumentsLoading(false);
         }
@@ -107,7 +108,6 @@ export default function ClientChat() {
                         const previousMessages = await fetchMessages(documentId);
                         setMessages(previousMessages);
                     } catch (error) {
-                        console.error("Failed to load uploaded document messages:", error);
                         setMessages([]);
                     } finally {
                         setMessagesLoading(false);
@@ -260,14 +260,10 @@ export default function ClientChat() {
         setUploadedFileName(null);
         setUploadStage("idle");
         setUploadError(null);
-        setChatLimitReached(false);
 
         try {
             const previousMessages = await fetchMessages(documentId);
             setMessages(previousMessages);
-
-            const priorUserTurns = previousMessages.filter((m) => m.role === "user").length;
-            setChatLimitReached(priorUserTurns >= 2);
         } catch (error) {
             console.error("Failed to load messages:", error);
             showUploadError("Could not load this document's conversation.");
@@ -340,7 +336,6 @@ export default function ClientChat() {
         setUploadedFileName(null);
         setUploadStage("idle");
         setUploadError(null);
-        setChatLimitReached(false);
     }
 
     async function handleClearAttachment() {
@@ -355,9 +350,7 @@ export default function ClientChat() {
         setUploadedFileName(null);
         setUploadStage("idle");
         setUploadError(null);
-        setChatLimitReached(false);
     }
-
     async function handleSubmit() {
         const question = input.trim();
 
@@ -373,8 +366,8 @@ export default function ClientChat() {
             showUploadError("Upload or select a document first.");
             return;
         }
-        const priorUserTurns = messages.filter((m) => m.role === "user").length;
-        if (priorUserTurns >= 2) {
+
+        if (chatLimitReached) {
             setMessages((previous) => [
                 ...previous,
                 {
@@ -385,7 +378,6 @@ export default function ClientChat() {
                 },
             ]);
             setInput("");
-            setChatLimitReached(true);
             return;
         }
 
@@ -405,13 +397,10 @@ export default function ClientChat() {
             id: assistantMessageId,
             role: "assistant",
             text: "",
+            question,
         };
 
-        setMessages((previous) => [
-            ...previous,
-            userMessage,
-            assistantMessage,
-        ]);
+        setMessages((previous) => [...previous, userMessage, assistantMessage]);
 
         setInput("");
         if (currentFileName) {
@@ -419,24 +408,16 @@ export default function ClientChat() {
         }
         setAsking(true);
 
-
         try {
-            const fullAnswer = await streamAnswer(
-                documentId,
-                question,
-                (chunk) => {
-                    setMessages((previous) =>
-                        previous.map((message) =>
-                            message.id === assistantMessageId
-                                ? {
-                                    ...message,
-                                    text: message.text + chunk,
-                                }
-                                : message,
-                        ),
-                    );
-                },
-            );
+            const fullAnswer = await streamAnswer(documentId, question, (chunk) => {
+                setMessages((previous) =>
+                    previous.map((message) =>
+                        message.id === assistantMessageId
+                            ? { ...message, text: message.text + chunk }
+                            : message,
+                    ),
+                );
+            });
             await persistMessage(documentId, {
                 role: "user",
                 text: question,
@@ -450,17 +431,65 @@ export default function ClientChat() {
             console.error("Answer request failed:", error);
             const isLimitReached = error instanceof ChatApiError && error.code === "CHAT_LIMIT_REACHED";
             const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : "Unable to generate an answer right now.";
-            if (isLimitReached) {
-                setChatLimitReached(true);
-            }
+                error instanceof Error ? error.message : "Unable to generate an answer right now.";
 
             setMessages((previous) =>
                 previous.map((message) =>
                     message.id === assistantMessageId
-                        ? { ...message, text: errorMessage, isNotice: isLimitReached }
+                        ? { ...message, text: errorMessage, isNotice: isLimitReached, isError: !isLimitReached }
+                        : message,
+                ),
+            );
+        } finally {
+            setAsking(false);
+        }
+    }
+    async function handleRetry(messageId: string) {
+        if (asking || chatLimitReached || !activeDocId) {
+            return;
+        }
+
+        const target = messages.find((m) => m.id === messageId);
+        if (!target?.question) {
+            return;
+        }
+
+        const documentId = activeDocId;
+        const question = target.question;
+        const timestamp = Date.now();
+        const newAssistantId = `assistant-${timestamp}`;
+
+        setMessages((previous) => [
+            ...previous,
+            { id: `user-${timestamp}`, role: "user", text: question },
+            { id: newAssistantId, role: "assistant", text: "", question },
+        ]);
+        setAsking(true);
+
+        try {
+            const fullAnswer = await streamAnswer(documentId, question, (chunk) => {
+                setMessages((previous) =>
+                    previous.map((message) =>
+                        message.id === newAssistantId
+                            ? { ...message, text: message.text + chunk }
+                            : message,
+                    ),
+                );
+            });
+
+            await persistMessage(documentId, { role: "user", text: question });
+            await persistMessage(documentId, { role: "assistant", text: fullAnswer });
+        } catch (error) {
+            console.error("Retry failed:", error);
+
+            const isLimitReached = error instanceof ChatApiError && error.code === "CHAT_LIMIT_REACHED";
+            const errorMessage =
+                error instanceof Error ? error.message : "Unable to generate an answer right now.";
+
+            setMessages((previous) =>
+                previous.map((message) =>
+                    message.id === newAssistantId
+                        ? { ...message, text: errorMessage, isNotice: isLimitReached, isError: !isLimitReached }
                         : message,
                 ),
             );
@@ -469,9 +498,7 @@ export default function ClientChat() {
         }
     }
 
-    const activeDocument = documents.find(
-        (document) => document.id === activeDocId,
-    );
+
     const fileLimitReached = documents.length >= 5;
     console.log("fileLimitReached:", fileLimitReached, "documents.length:", documents.length);
     return (
@@ -495,11 +522,15 @@ export default function ClientChat() {
 
                 <main className="flex min-w-0 flex-1 flex-col bg-[#0D0D0D]">
                     <ChatTranscript
-                        messages={messages.map((message) => ({
-                            ...message,
-                            content: message.text,
-                        }))}
+                        messages={messages.map((message) => {
+                            return {
+                                ...message,
+                                content: message.text,
+                            };
+                        })}
                         isLoading={asking}
+                        onRetry={handleRetry}
+                        chatLimitReached={chatLimitReached}
                         isMessagesLoading={messagesLoading}
                         hasDocument={Boolean(activeDocId)}
                         onScrollStateChange={setIsScrolled}

@@ -1,15 +1,3 @@
-/**
- * StudyVault backend client.
- * Talks to the existing API routes:
- *   GET    /api/documents
- *   POST   /api/upload                       -> { presignedUrl, documentId }
- *   POST   /api/documents/:id/confirm
- *   DELETE /api/documents/:id/delete
- *   GET    /api/documents/:id/messages
- *   POST   /api/documents/:id/messages
- *   POST   /api/documents/:id/query          -> text stream
- */
-
 export type DocStatus = "PENDING" | "EMBEDDED" | "FAILED" | string;
 
 export interface StudyDocument {
@@ -31,6 +19,8 @@ export interface ChatMessage {
     text: string;
     fileName?: string;
     isNotice?: boolean;
+    isError?: boolean;
+    question?: string;
 }
 
 export type UploadStage = "idle" | "uploading" | "processing" | "ready" | "failed";
@@ -148,51 +138,67 @@ export async function streamAnswer(
     question: string,
     onChunk: (chunk: string) => void,
 ): Promise<string> {
-    const res = await fetch(`/api/documents/${docId}/query`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ question }),
-    });
+    const controller = new AbortController();
+    let timeoutId = setTimeout(() => controller.abort(), 25_000);
 
-    if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new ChatApiError(
-            data?.error ?? `Unable to generate an answer (HTTP ${res.status}).`,
-            data?.code,
-        );
-    }
-
-    if (!res.body) {
-        throw new Error("The server did not return an answer stream.");
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let fullAnswer = "";
-
-    while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-            break;
-        }
-
-        const chunk = decoder.decode(value, {
-            stream: true,
+    try {
+        const res = await fetch(`/api/documents/${docId}/query`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ question }),
+            signal: controller.signal,
         });
 
-        fullAnswer += chunk;
-        onChunk(chunk);
+        if (!res.ok) {
+            const data = await res.json().catch(() => null);
+            throw new ChatApiError(
+                data?.error ?? `Unable to generate an answer (HTTP ${res.status}).`,
+                data?.code,
+            );
+        }
+
+        if (!res.body) {
+            throw new Error("The server did not return an answer stream.");
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullAnswer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+                break;
+            }
+
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => controller.abort(), 45_000);
+            const chunk = decoder.decode(value, { stream: true });
+
+            fullAnswer += chunk;
+            onChunk(chunk);
+        }
+
+        const finalChunk = decoder.decode();
+
+        if (finalChunk) {
+            fullAnswer += finalChunk;
+            onChunk(finalChunk);
+        }
+
+        return fullAnswer;
+    } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+            throw new Error("The request timed out. Check your connection and try again.");
+        }
+        if (error instanceof TypeError) {
+            throw new Error("Network error — check your connection and try again.");
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
     }
-
-    const finalChunk = decoder.decode();
-
-    if (finalChunk) {
-        fullAnswer += finalChunk;
-        onChunk(finalChunk);
-    }
-
-    return fullAnswer;
 }

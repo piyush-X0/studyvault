@@ -45,26 +45,44 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         const relevantChunks = await findRelevantChunks(id, questionvector, 5);
 
         const encoder = new TextEncoder();
+        let clientDisconnected = false;
 
         const stream = new ReadableStream({
             async start(controller) {
+                const safeEnqueue = (text: string) => {
+                    if (clientDisconnected) {
+                        return;
+                    }
+                    try {
+                        controller.enqueue(encoder.encode(text));
+                    } catch (error) {
+                        clientDisconnected = true;
+                    }
+                };
+
                 try {
                     await streamAnswer(
                         question,
                         relevantChunks.map((chunk) => chunk.content),
-                        (text) => {
-                            controller.enqueue(encoder.encode(text));
-                        },
+                        safeEnqueue,
                     );
                 } catch (error) {
-                    console.error("AI answer generation failed:", error);
-
-                    const safeMessage = getAiErrorMessage(error);
-
-                    controller.enqueue(encoder.encode(safeMessage));
+                    if (!clientDisconnected) {
+                        console.error("AI answer generation failed:", error);
+                        const safeMessage = getAiErrorMessage(error);
+                        safeEnqueue(safeMessage);
+                    }
                 } finally {
-                    controller.close();
+                    if (!clientDisconnected) {
+                        try {
+                            controller.close();
+                        } catch (error) {
+                        }
+                    }
                 }
+            },
+            cancel() {
+                clientDisconnected = true;
             },
         });
         return new Response(stream, {
