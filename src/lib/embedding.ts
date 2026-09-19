@@ -1,12 +1,16 @@
 
-import { pipeline, FeatureExtractionPipeline } from "@xenova/transformers";
+import { pipeline, env, FeatureExtractionPipeline } from "@xenova/transformers";
+env.cacheDir = "/tmp/xenova-cache";
 
 const EMBEDDING_MODEL = "Xenova/all-MiniLM-L6-v2";
 
 let embedderPromise: Promise<FeatureExtractionPipeline> | null = null;
 function getEmbedder() {
     if (!embedderPromise) {
-        embedderPromise = pipeline("feature-extraction", EMBEDDING_MODEL);
+        embedderPromise = pipeline("feature-extraction", EMBEDDING_MODEL).catch((error) => {
+            embedderPromise = null;
+            throw Error;
+        });
     }
     return embedderPromise;
 }

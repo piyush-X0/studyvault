@@ -500,7 +500,6 @@ export default function ClientChat() {
 
 
     const fileLimitReached = documents.length >= 5;
-    console.log("fileLimitReached:", fileLimitReached, "documents.length:", documents.length);
     return (
         <div className="flex h-screen w-screen flex-col overflow-hidden bg-[#0A0A0A] text-neutral-100">
             <Header

@@ -22,6 +22,5 @@ export async function sweepStaleUpload() {
             failed++;
         }
     }
-    console.error(`swept ${staledocuments.length} stale pending document ( ${uploaded} uploaded , ${failed} failed)`)
 }
 sweepStaleUpload();

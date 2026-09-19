@@ -52,7 +52,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
 
         const messages = await prisma.messages.findMany({
-            where: { documentId: id },
+            where: { documentId: id, document: { userId: session.user.id } },
             orderBy: { createdAt: "asc" },
             select: { id: true, role: true, text: true, fileName: true, createdAt: true }
         });

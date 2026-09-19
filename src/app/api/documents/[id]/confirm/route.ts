@@ -7,6 +7,7 @@ import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 
+export const maxDuration = 60;
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 
     try {

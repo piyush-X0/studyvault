@@ -62,7 +62,8 @@ Answer:`;
 
     let lastError: unknown;
 
-    for (let attempt = 0; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+        let receivedAnyChunk = false;
         try {
             const stream = await groq.chat.completions.create({
                 model: MODEL,
@@ -72,18 +73,20 @@ Answer:`;
 
             for await (const chunk of stream) {
                 const text = chunk.choices[0]?.delta?.content;
-                if (text) onChunk(text);
+                if (text) {
+                    receivedAnyChunk = true;
+                    onChunk(text);
+                }
             }
             return;
         } catch (error) {
             lastError = error;
-            const isFinalAttempt = attempt === MAX_ATTEMPTS;
-            if (!isRetryableAiError(error) || isFinalAttempt) throw error;
+            const isFinalAttempt = attempt === MAX_ATTEMPTS - 1;
+            if (receivedAnyChunk || !isRetryableAiError(error) || isFinalAttempt) throw error;
 
-            const delayMs = attempt * 1_500;
-            console.warn(`[answers] Groq request failed on attempt ${attempt}/${MAX_ATTEMPTS}; retrying in ${delayMs}ms.`);
+            const delayMs = (attempt + 1) * 1_500;
+            console.warn(`[answers] Groq request failed on attempt ${attempt + 1}/${MAX_ATTEMPTS}; retrying in ${delayMs}ms.`);
             await sleep(delayMs);
         }
     }
-    throw lastError ?? new Error("Unable to generate an answer.");
 }
