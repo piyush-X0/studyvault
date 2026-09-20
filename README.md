@@ -6,7 +6,8 @@ A RAG (Retrieval-Augmented Generation) pipeline built from scratch: upload a doc
 > Runs on free-tier infra. A keep-warm ping keeps the database awake, so cold starts should be rare — but this is a zero-budget deploy, not a production SLA.
 
 ### System architecture
-self-drawn -architecture
+<img width="6930" height="2887" alt="rag-architecture" src="https://github.com/user-attachments/assets/2ebdb021-c0ea-4b4c-88ff-f1dd33c0dfc8" />
+
 
 ## The 30 second version
 
