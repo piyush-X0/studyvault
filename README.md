@@ -3,11 +3,12 @@
 A RAG (Retrieval-Augmented Generation) pipeline built from scratch: upload a document, it gets chunked and embedded locally, and you chat with it grounded in real retrieved context. The kind of machinery that sits under every "chat with your PDF" product, rebuilt to actually understand it — end to end, in TypeScript.
 
 **Live demo:** [studyvault-amber-iota.vercel.app](https://studyvault-amber-iota.vercel.app)
+
 > Runs on free-tier infra. A keep-warm ping keeps the database awake, so cold starts should be rare — but this is a zero-budget deploy, not a production SLA.
 
 ### System architecture
-<img width="6930" height="2887" alt="rag-architecture" src="https://github.com/user-attachments/assets/2ebdb021-c0ea-4b4c-88ff-f1dd33c0dfc8" />
 
+<img width="6930" height="2887" alt="rag-architecture" src="https://github.com/user-attachments/assets/2ebdb021-c0ea-4b4c-88ff-f1dd33c0dfc8" />
 
 ## The 30 second version
 
@@ -53,23 +54,21 @@ The upload confirmation never waits on the pipeline. `after()` lets the HTTP res
 
 ## Tech, and why
 
-| Layer | Tech | Why |
-|---|---|---|
-| Framework | Next.js 16 (App Router), TypeScript | One codebase for UI, API routes, and background work. |
-| Auth | Auth.js (NextAuth), Google OAuth, JWT | No session table round-trip needed on every request. |
-| Database | Neon Postgres + pgvector, Prisma | Serverless Postgres with vector search built in — no separate vector DB to run. |
-| File storage | Cloudflare R2, presigned URLs | Browser uploads straight to storage; the server never proxies file bytes. |
-| Embeddings | `@xenova/transformers`, `all-MiniLM-L6-v2` (384-dim) | Runs in-process — no external API, no rate limit, no per-request cost. Swapped in after exhausting Gemini and OpenAI free tiers. |
-| Chat model | Groq, `openai/gpt-oss-120b` | Fast inference, generous free tier, OpenAI-compatible SDK. |
-| Validation | Zod | Every request body validated at the boundary. |
-| Text extraction | `pdf-parse`, `mammoth` | PDF and DOCX support without a headless browser. |
+| Layer           | Tech                                                 | Why                                                                                                                              |
+| --------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Framework       | Next.js 16 (App Router), TypeScript                  | One codebase for UI, API routes, and background work.                                                                            |
+| Auth            | Auth.js (NextAuth), Google OAuth, JWT                | No session table round-trip needed on every request.                                                                             |
+| Database        | Neon Postgres + pgvector, Prisma                     | Serverless Postgres with vector search built in — no separate vector DB to run.                                                  |
+| File storage    | Cloudflare R2, presigned URLs                        | Browser uploads straight to storage; the server never proxies file bytes.                                                        |
+| Embeddings      | `@xenova/transformers`, `all-MiniLM-L6-v2` (384-dim) | Runs in-process — no external API, no rate limit, no per-request cost. Swapped in after exhausting Gemini and OpenAI free tiers. |
+| Chat model      | Groq, `openai/gpt-oss-120b`                          | Fast inference, generous free tier, OpenAI-compatible SDK.                                                                       |
+| Validation      | Zod                                                  | Every request body validated at the boundary.                                                                                    |
+| Text extraction | `pdf-parse`, `mammoth`                               | PDF and DOCX support without a headless browser.                                                                                 |
 
 ## A few decisions I would call out
 
 - **Moved embeddings in-process instead of chasing another API.** After burning through free-tier quota on two different embedding providers during testing, the fix wasn't a bigger quota — it was removing the external dependency entirely. Xenova trades a few hundred milliseconds of CPU time for zero rate limits, which is the right trade for a project this size.
 - **The background pipeline uses `after()`, not a naive fire-and-forget.** A bare non-awaited async call risks the serverless function freezing the instant the HTTP response is sent. `after()` is the platform-sanctioned way to say "keep this invocation alive until this finishes," which a raw `void runPipeline(id)` does not guarantee.
-- **The chat-limit flag is derived state, not a synced boolean.** An earlier version tracked "has this file hit its chat limit" as its own `useState`, manually set and reset across five different code paths (submit, retry, delete, new-chat, select-document). It drifted out of sync twice — a retry could succeed against a limit the client thought didn't exist yet. The fix was deleting the state entirely and computing it fresh from the message list on every render, so there's nothing left to fall out of sync.
-- **Retry re-asks the question rather than replaying the old answer.** Regenerating a response is modeled as a genuinely new turn — new message rows, counted the same as any other question — rather than quietly overwriting history. Simpler to reason about, and it matches what the backend already enforces.
 - **A keep-warm cron pings the database, not the app.** Neon's free tier suspends its compute after 5 minutes of inactivity; a scheduled `SELECT 1` every ~4 minutes keeps it from ever going idle. This is a workaround for a specific free-tier constraint, not a substitute for provisioned compute — worth saying explicitly rather than presenting it as a real fix.
 
 ## Edge cases handled
