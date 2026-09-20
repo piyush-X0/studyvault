@@ -27,43 +27,43 @@ export default function SignInPage() {
   const pipelineSteps = [
     {
       step: "01",
-      title: "Document Ingestion & Boundary Snapping",
+      title: "Document Ingestion",
       description:
-        "Upload raw PDFs, DOCX, or text files to Cloudflare R2 storage. Text is parsed into clean streams while preserving heading anchors and logical paragraph boundaries.",
-      badge: "Ingestion & Parse",
+        "Upload a PDF, DOCX, or text file via a presigned URL, straight to Cloudflare R2. Once confirmed, text is extracted with pdf-parse or mammoth.",
+      badge: "Upload & Extract",
     },
     {
       step: "02",
-      title: "Semantic Chunking & Gemini Vectorization",
+      title: "Chunking & Local Embeddings",
       description:
-        "Content is chunked into overlapping windows (~500 tokens). Chunks pass to Google Gemini's text-embedding engine producing 1536-dimensional normalized dense vectors.",
-      badge: "Vector Math",
+        "Text is split into ~4,000-character chunks with a 400-character overlap, snapped to sentence boundaries. Each chunk is embedded in-process, on the server, using a local ONNX model — no external embedding API.",
+      badge: "Xenova / ONNX",
     },
     {
       step: "03",
-      title: "Neon Serverless & pgvector HNSW Indexing",
+      title: "Postgres & pgvector Indexing",
       description:
-        "Embeddings are persisted in PostgreSQL with pgvector. An HNSW (Hierarchical Navigable Small World) index provides sub-50ms approximate nearest-neighbor retrieval.",
-      badge: "Storage Engine",
+        "384-dimensional vectors are stored in Neon Postgres with a pgvector HNSW index, enabling cosine similarity search over the document's chunks.",
+      badge: "Vector Storage",
     },
     {
       step: "04",
-      title: "Augmented Context & Grounded Synthesis",
+      title: "Retrieval & Grounded Answers",
       description:
-        "User prompts trigger cosine similarity search against chunks. The top-k matches construct a strictly grounded system prompt for hallucination-free generation.",
-      badge: "Inference",
+        "A question is embedded the same way, the top-5 most relevant chunks are retrieved by cosine similarity, and an answer streams back grounded in that retrieved context.",
+      badge: "Retrieval + Groq",
     },
   ];
 
   const techBadges = [
     { name: "Next.js 16 (Turbopack)", role: "Full-stack App Router" },
     { name: "TypeScript 5", role: "Type-Safe Pipeline" },
-    { name: "PostgreSQL & pgvector", role: "Vector DB" },
+    { name: "PostgreSQL & pgvector", role: "Vector Search" },
     { name: "Prisma ORM", role: "Schema & Migrations" },
-    { name: "Tailwind CSS v4", role: "Design System" },
-    { name: "Framer Motion", role: "Fluid Physics" },
+    { name: "Xenova Transformers", role: "In-Process Embeddings" },
+    { name: "Groq", role: "Streamed Chat Completions" },
     { name: "Cloudflare R2", role: "Object Storage" },
-    { name: "NextAuth.js v5", role: "Isolated Multi-Tenancy" },
+    { name: "NextAuth.js v5", role: "Google OAuth" },
   ];
 
   return (
@@ -100,7 +100,7 @@ export default function SignInPage() {
         >
           <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-[#141414] px-3.5 py-1 text-xs font-medium text-neutral-300">
             <Sparkles className="h-3.5 w-3.5 text-white" />
-            <span>Autonomous Document Reasoning Engine</span>
+            <span>Document RAG, built from scratch</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white leading-[1.1]">
@@ -111,7 +111,7 @@ export default function SignInPage() {
           </h1>
 
           <p className="text-base sm:text-lg text-neutral-400 max-w-xl leading-relaxed">
-            A production-ready RAG architecture built with strict TypeScript types, PostgreSQL vector indexing, and boundary-snapped semantic chunking.
+            A RAG pipeline with TypeScript end to end — in-process embeddings, Postgres vector search, and sentence-boundary-aware chunking.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 max-w-lg">
@@ -119,7 +119,7 @@ export default function SignInPage() {
               <Database className="h-4 w-4 text-white shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-semibold text-white">pgvector HNSW</p>
-                <p className="text-[11px] text-neutral-400 mt-0.5">Sub-50ms cosine similarity indexing</p>
+                <p className="text-[11px] text-neutral-400 mt-0.5">Cosine similarity search over 384-dim vectors</p>
               </div>
             </div>
 
@@ -127,7 +127,7 @@ export default function SignInPage() {
               <Cpu className="h-4 w-4 text-white shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-semibold text-white">Boundary Snapping</p>
-                <p className="text-[11px] text-neutral-400 mt-0.5">Lossless markdown sentence boundaries</p>
+                <p className="text-[11px] text-neutral-400 mt-0.5">Chunks snapped to sentence boundaries</p>
               </div>
             </div>
           </div>
@@ -185,9 +185,9 @@ export default function SignInPage() {
             </motion.button>
 
             {/* Tenancy & Security note */}
-            <div className="mt-6 flex items-center justify-center gap-1.5 text-center text-[11px] text-neutral-500">
-              <Lock className="h-3 w-3 text-neutral-400" />
-              <span>Session isolation via encrypted OAuth tokens</span>
+            <div className="mt-6 flex items-start justify-center gap-1 text-center text-[11px] text-neutral-500">
+              <Lock className="h-3 w-3 text-neutral-400 mt-0.5 shrink-0" />
+              <span>Documents and chat history are scoped to your account</span>
             </div>
           </div>
         </motion.div>
@@ -201,10 +201,10 @@ export default function SignInPage() {
               Pipeline Architecture
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-              How the TypeScript RAG engine works
+              How the RAG pipeline works
             </h2>
             <p className="text-sm text-neutral-400">
-              Every document undergoes end-to-end processing with deterministic state checkpoints.
+              Every document moves through the same four stages before it's queryable.
             </p>
           </div>
 
@@ -267,7 +267,7 @@ export default function SignInPage() {
               <span className="font-semibold text-white text-sm">StudyVault</span>
             </div>
             <p className="text-[11px] leading-relaxed text-neutral-400">
-              A high-precision document search application combining dense vector embeddings with strict tenant isolation for mission-critical documents.
+              A RAG pipeline for chatting with your own documents — presigned uploads, in-process embeddings, vector search, and grounded chat answers, built end to end.
             </p>
           </div>
 
@@ -276,25 +276,25 @@ export default function SignInPage() {
               Retrieval Specifications
             </p>
             <ul className="space-y-1.5 text-[11px] text-neutral-400">
-              <li>• Cosine distance metric ({'<=>'} ) via pgvector</li>
-              <li>• HNSW parameters: `m=16`, `ef_construction=64`</li>
-              <li>• Overlap buffer: 10% token carryover</li>
-              <li>• S3-compatible pre-signed upload channels</li>
+              <li>• Cosine distance metric ({'<=>'}) via pgvector</li>
+              <li>• HNSW index over 384-dimensional vectors</li>
+              <li>• 4,000-character chunks, 400-character overlap, snapped to sentence boundaries</li>
+              <li>• S3-compatible pre-signed uploads (Cloudflare R2)</li>
             </ul>
           </div>
 
           <div className="space-y-2">
             <p className="font-semibold uppercase tracking-wider text-neutral-300 text-[11px]">
-              Production Design
+              Project Notes
             </p>
             <p className="text-[11px] leading-relaxed text-neutral-400">
-              Designed as a portfolio RAG reference implementation. Demonstrates custom vector indexing pipelines without high-level black-box wrappers, providing full control over tokenization, chunk boundaries, and retrieval latency.
+              Built as a portfolio reference implementation of a RAG pipeline — in-process embeddings avoid external API quotas, ingestion runs as a background job, and usage limits are enforced server-side per account.
             </p>
           </div>
         </div>
 
         <div className="mx-auto max-w-6xl mt-10 pt-6 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-neutral-500">
-          <span>StudyVault RAG Pipeline • Portfolio Showcase</span>
+          <span>StudyVault RAG Pipeline • Portfolio Project</span>
           <span>Next.js 16 • PostgreSQL • Prisma • Tailwind CSS</span>
         </div>
       </footer>

@@ -1,5 +1,3 @@
-
-
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -34,9 +32,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           rel="stylesheet"
         />
       </head>
-      <body className="overflow-hidden h-screen w-screen flex flex-col">
+      <body className="antialiased">
         <SessionProvider>
-          <main className="flex-1 overflow-hidden">{children}</main>
+          <main>{children}</main>
         </SessionProvider>
       </body>
     </html>
