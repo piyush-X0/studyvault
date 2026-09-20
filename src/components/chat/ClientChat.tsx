@@ -501,7 +501,7 @@ export default function ClientChat() {
 
     const fileLimitReached = documents.length >= 5;
     return (
-        <div className="flex h-dvh w-screen flex-col overflow-hidden bg-[#0A0A0A] text-neutral-100">
+        <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#0A0A0A] text-neutral-100">
             <Header
                 onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
                 isScrolled={isScrolled}
