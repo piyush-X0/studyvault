@@ -237,7 +237,7 @@ export default function ChatComposer({
     const uploadAnimation = getUploadAnimation(uploadStage);
 
     return (
-        <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 pb-4">
+        <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {uploadError && (
                 <p className="mt-1.5 px-1 text-xs text-red-400">
                     {uploadError}
