@@ -254,7 +254,7 @@ export default function ProjectSidebar({
                   }}
                   className={[
                     "shrink-0 rounded-md p-1.5 text-neutral-500",
-                    "opacity-0 transition-all duration-200 ease-out",
+                    "opacity-100 sm:opacity-0 transition-all duration-200 ease-out",
                     "group-hover:opacity-100 hover:bg-red-500/15 hover:text-red-400",
                     "focus-visible:opacity-100 focus-visible:outline-none",
                     "focus-visible:ring-2 focus-visible:ring-red-400/50",
