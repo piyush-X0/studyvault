@@ -14,14 +14,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://studyvault-amber-iota.vercel.app"),
   title: "StudyVault",
   description: "Chat with your documents",
+  openGraph: {
+    title: "StudyVault",
+    description: "Chat with your documents",
+    url: "/",
+    siteName: "StudyVault",
+    type: "website",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "StudyVault",
+      },
+    ],
+  },
 };
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   interactiveWidget: "resizes-content",
 };
+
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
