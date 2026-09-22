@@ -74,7 +74,7 @@ export default function SignInPage() {
       </div>
 
       {/* TOP COMPACT NAV */}
-      <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between border-b border-neutral-800/80 bg-[#0A0A0A]">
+      <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between border-b border-neutral-800/80 bg-[#0A0A0A] px-1.5">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-black shadow-sm">
             <Sparkles className="h-4 w-4" />
