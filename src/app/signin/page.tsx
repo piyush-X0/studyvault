@@ -70,11 +70,11 @@ export default function SignInPage() {
     <div className="min-h-screen w-full bg-[#0A0A0A] text-neutral-100 selection:bg-neutral-800 selection:text-white">
       {/* BACKGROUND AMBIENT GLOW */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-125 w-225 rounded-full bg-neutral-800/20 blur-[130px]" />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-125 w-225 rounded-full bg-neutral-800/20 blur-[60px]" />
       </div>
 
       {/* TOP COMPACT NAV */}
-      <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between border-b border-neutral-800/80 bg-[#0A0A0A]/85 px-6 backdrop-blur-md">
+      <header className="sticky top-0 z-50 flex h-14 w-full items-center justify-between border-b border-neutral-800/80 bg-[#0A0A0A]">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-black shadow-sm">
             <Sparkles className="h-4 w-4" />
@@ -140,7 +140,7 @@ export default function SignInPage() {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="mt-10 lg:mt-0 flex w-full max-w-sm flex-col"
         >
-          <div className="relative rounded-2xl border border-neutral-800 bg-[#111111]/90 p-8 shadow-2xl backdrop-blur-xl transition-all hover:border-neutral-700">
+          <div className="relative rounded-2xl border border-neutral-800 bg-[#111111]/90 p-8 shadow-2xl transition-all hover:border-neutral-700">
             {/* Top ambient badge */}
             <div className="mb-6 space-y-1.5 text-center">
               <h2 className="text-xl font-bold tracking-tight text-white">

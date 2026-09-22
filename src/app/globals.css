@@ -182,6 +182,6 @@
     font-family: var(--font-body);
   }
   html {
-    @apply font-sans;
+    @apply font-sans custom-scrollbar;
   }
 }

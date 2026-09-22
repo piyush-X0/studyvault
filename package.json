@@ -7,7 +7,13 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint"
-  },
+  },   "browserslist": [
+    "> 0.5%",
+    "last 2 versions",
+    "iOS >= 15",
+    "not dead"
+  ],
+
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1105.0",
     "@aws-sdk/s3-request-presigner": "^3.1105.0",
